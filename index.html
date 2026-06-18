@@ -1,1 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leave Atlas — Workforce Leave Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=pilotA-2026-06-17">
+</head>
+<body>
 
+<!-- ============== APP SHELL ============== -->
+<div class="app">
+
+  <!-- ============== SIDEBAR ============== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect x="2" y="2" width="28" height="28" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 10h16M8 16h10M8 22h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+          <circle cx="22" cy="16" r="2.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Leave Atlas <span class="brand-pilot">Pilot · A</span></div>
+        <div class="brand-sub">Workforce Leave Mgmt.</div>
+      </div>
+    </div>
+
+    <div class="role-switcher">
+      <label class="role-label">Acting as</label>
+      <select id="roleSelect">
+        <option value="employee">Employee</option>
+        <option value="dept_head">Dept. Head / Reporting Mgr.</option>
+        <option value="payroll">Payroll Officer</option>
+        <option value="welfare">Welfare & Counseling</option>
+        <option value="hr">Management & HR</option>
+        <option value="forecast">Forecasting Analyst</option>
+        <option value="hradmin">HR · Employee Admin</option>
+      </select>
+    </div>
+
+    <nav class="nav" id="nav">
+      <a href="#" data-module="apply" data-roles="employee">
+        <span class="nav-letter">A</span>
+        <span class="nav-text">Apply for Leave</span>
+      </a>
+      <a href="#" data-module="approval" data-roles="dept_head">
+        <span class="nav-letter">B</span>
+        <span class="nav-text">Approval Queue</span>
+        <span class="nav-badge" id="badge-approval">0</span>
+      </a>
+      <a href="#" data-module="payroll" data-roles="payroll">
+        <span class="nav-letter">C</span>
+        <span class="nav-text">Payroll Entry</span>
+        <span class="nav-badge" id="badge-payroll">0</span>
+      </a>
+      <a href="#" data-module="welfare" data-roles="welfare">
+        <span class="nav-letter">D</span>
+        <span class="nav-text">Welfare & Counseling</span>
+        <span class="nav-badge" id="badge-welfare">0</span>
+      </a>
+      <a href="#" data-module="reports" data-roles="hr">
+        <span class="nav-letter">E</span>
+        <span class="nav-text">HR Reports</span>
+      </a>
+      <a href="#" data-module="forecast" data-roles="forecast">
+        <span class="nav-letter">F</span>
+        <span class="nav-text">Forecast Trends</span>
+      </a>
+      <a href="#" data-module="myfile" data-roles="employee">
+        <span class="nav-letter">G</span>
+        <span class="nav-text">My Leave File</span>
+      </a>
+      <a href="#" data-module="employees" data-roles="hradmin payroll hr">
+        <span class="nav-letter">H</span>
+        <span class="nav-text">Employee Admin</span>
+        <span class="nav-badge" id="badge-employees">0</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button class="link-btn" id="clearBtn" title="Clear all data">Reset</button>
+      <div class="foot-meta">
+        <span id="connStatus" class="dot dot-local">●</span>
+        <span id="connText">Local mode</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <!-- ============== TOP BAR ============== -->
+    <header class="topbar">
+      <div class="crumbs">
+        <span class="crumb-mod">Module</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-name" id="crumbName">Apply for Leave</span>
+      </div>
+      <div class="topbar-right">
+        <div class="today">
+          <span class="today-label">Today</span>
+          <span class="today-date" id="todayDate"></span>
+        </div>
+        <button class="ghost-btn" id="settingsBtn">⚙ Settings</button>
+      </div>
+    </header>
+
+    <!-- ============== PILOT WELCOME BANNER (empty-roster onboarding) ============== -->
+    <div class="welcome-banner" id="welcomeBanner" hidden>
+      <div class="welcome-inner">
+        <div class="welcome-eyebrow">Project A · Pilot Setup</div>
+        <h2 class="welcome-title">Welcome — your roster is empty.</h2>
+        <p class="welcome-lead">This is a fresh pilot deployment. Follow these four steps to go live:</p>
+        <ol class="welcome-steps">
+          <li><strong>Connect Google Sheets</strong> — open <button class="link-btn welcome-link" data-act="openSettings">⚙ Settings</button> and paste your Apps Script Web App URL.</li>
+          <li><strong>Import or add employees</strong> — go to <button class="link-btn welcome-link" data-act="gotoEmployees">Part H · Employee Admin</button> and either bulk-import an Excel/CSV file or add joiners one by one.</li>
+          <li><strong>Employees can apply</strong> — once the roster is loaded, Part A and Part G become usable for staff.</li>
+          <li><strong>Department heads approve</strong> — Part B for approvals, Part C for payroll, Part D for welfare.</li>
+        </ol>
+        <div class="welcome-actions">
+          <button class="primary-btn" id="welcomeGotoEmployees">Go to Employee Admin →</button>
+          <button class="ghost-btn" id="welcomeOpenSettings">⚙ Open Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== MODULES ============== -->
+
+    <!-- ===== MODULE A: APPLY ===== -->
+    <section class="module" id="mod-apply">
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;A · Employee</div>
+        <h1 class="head-title">Apply for <em>Leave</em></h1>
+        <p class="head-lead">Submit a leave request. Balance, policy, holidays, and overlaps are checked automatically.</p>
+      </div>
+
+      <div class="apply-grid">
+        <!-- Form -->
+        <div class="card form-card">
+          <div class="card-head">
+            <span class="card-tag">Form</span>
+            <h2 class="card-title">New Application</h2>
+          </div>
+
+          <div class="form-row">
+            <label>Employee ID</label>
+            <div class="combo">
+              <input type="text" id="f-empId" placeholder="e.g. EMP-1042" autocomplete="off" />
+              <button class="combo-btn" id="lookupBtn">Lookup</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Name</label>
+            <input type="text" id="f-name" placeholder="Auto-fills after lookup" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label>Designation</label>
+              <input type="text" id="f-desig" placeholder="—" readonly />
+            </div>
+            <div class="form-row">
+              <label>Department</label>
+              <input type="text" id="f-dept" placeholder="—" readonly />
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-row">
+              <label>Section</label>
+              <input type="text" id="f-sec" placeholder="—" readonly />
+            </div>
+            <div class="form-row">
+              <label>Sub-Section</label>
+              <input type="text" id="f-subsec" placeholder="—" readonly />
+            </div>
+            <div class="form-row">
+              <label>Line / Unit</label>
+              <input type="text" id="f-line" placeholder="—" readonly />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Leave Type</label>
+            <div class="chips" id="leaveTypeChips">
+              <button class="chip" data-type="Casual">Casual</button>
+              <button class="chip" data-type="Sick">Sick</button>
+              <button class="chip" data-type="Annual">Annual</button>
+              <button class="chip" data-type="Maternity">Maternity</button>
+              <button class="chip" data-type="Others">Others</button>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label>Start Date</label>
+              <input type="date" id="f-start" />
+            </div>
+            <div class="form-row">
+              <label>End Date</label>
+              <input type="date" id="f-end" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Reason / Note <span class="muted">(optional)</span></label>
+            <textarea id="f-reason" rows="2" placeholder="Briefly describe…"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="primary-btn" id="submitLeaveBtn">Submit Application</button>
+            <button class="ghost-btn" id="resetFormBtn">Clear</button>
+          </div>
+        </div>
+
+        <!-- Live Inspector -->
+        <div class="card inspector-card">
+          <div class="card-head">
+            <span class="card-tag tag-amber">Live Check</span>
+            <h2 class="card-title">Policy Inspector</h2>
+          </div>
+
+          <div class="inspector-stat">
+            <div class="stat-label">Working days requested</div>
+            <div class="stat-value" id="ins-days">—</div>
+            <div class="stat-meta" id="ins-daysMeta">Pick dates to compute</div>
+          </div>
+
+          <div class="balance-block">
+            <div class="balance-row">
+              <span class="bal-key">Casual <em>(cap 10)</em></span>
+              <div class="bal-bar"><div class="bal-fill" id="bar-cl"></div></div>
+              <span class="bal-val" id="val-cl">— / 10</span>
+            </div>
+            <div class="balance-row">
+              <span class="bal-key">Sick <em>(cap 14)</em></span>
+              <div class="bal-bar"><div class="bal-fill" id="bar-sl"></div></div>
+              <span class="bal-val" id="val-sl">— / 14</span>
+            </div>
+            <div class="balance-row">
+              <span class="bal-key">Annual <em>(cap 20)</em></span>
+              <div class="bal-bar"><div class="bal-fill" id="bar-al"></div></div>
+              <span class="bal-val" id="val-al">— / 20</span>
+            </div>
+            <div class="balance-row">
+              <span class="bal-key">Maternity <em>(cap 120)</em></span>
+              <div class="bal-bar"><div class="bal-fill" id="bar-ml"></div></div>
+              <span class="bal-val" id="val-ml">— / 120</span>
+            </div>
+          </div>
+
+          <div class="findings" id="findings">
+            <div class="finding-empty">Findings will appear as you fill the form.</div>
+          </div>
+
+          <div class="split-paid">
+            <div class="split-line">
+              <span class="split-key">Paid days</span>
+              <span class="split-val" id="paid-days">—</span>
+            </div>
+            <div class="split-line">
+              <span class="split-key">Unpaid days</span>
+              <span class="split-val" id="unpaid-days">—</span>
+            </div>
+            <div class="split-line">
+              <span class="split-key">Govt./Festival holidays in range</span>
+              <span class="split-val" id="holi-days">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE B: APPROVAL ===== -->
+    <section class="module" id="mod-approval" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;B · Department Head / Reporting Manager</div>
+        <h1 class="head-title">Approval <em>Queue</em></h1>
+        <p class="head-lead">Pending leave requests for your department. Approve or decline — the row clears after action.</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label>Department</label>
+          <select id="approval-dept"><option value="">All</option></select>
+        </div>
+        <div class="filter">
+          <label>Search</label>
+          <input type="search" id="approval-search" placeholder="ID, name, designation…" />
+        </div>
+        <div class="filter-summary" id="approvalSummary"></div>
+      </div>
+
+      <div class="shortage-banner" id="shortageBanner" hidden>
+        <div class="sb-icon">⚠</div>
+        <div class="sb-text">
+          <strong>Critical manpower shortage detected.</strong>
+          <span id="sb-detail"></span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SL</th>
+              <th>ID</th>
+              <th>Name</th>
+              <th>DOJ</th>
+              <th>Service</th>
+              <th>Days</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Designation</th>
+              <th>Dept / Section / Sub / Line / Unit</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="approval-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MODULE C: PAYROLL ===== -->
+    <section class="module" id="mod-payroll" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;C · Payroll</div>
+        <h1 class="head-title">Payroll <em>Entry</em></h1>
+        <p class="head-lead">Approved leaves awaiting entry in payroll software. Tick after entry — row clears, record retained.</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label>Search</label>
+          <input type="search" id="payroll-search" placeholder="ID, name…" />
+        </div>
+        <div class="filter">
+          <label>Status</label>
+          <select id="payroll-type">
+            <option value="">All types</option>
+            <option>Casual</option>
+            <option>Sick</option>
+            <option>Annual</option>
+            <option>Maternity</option>
+            <option>Others</option>
+          </select>
+        </div>
+        <div class="filter export-group">
+          <button class="ghost-btn" id="payrollCsvBtn">⤓ CSV</button>
+          <button class="ghost-btn" id="payrollXlsxBtn">⤓ Excel</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SL</th>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Leave Status</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Days (Paid / Unpaid)</th>
+              <th>Entry ✓</th>
+            </tr>
+          </thead>
+          <tbody id="payroll-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MODULE D: WELFARE ===== -->
+    <section class="module" id="mod-welfare" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;D · Welfare & Counseling</div>
+        <h1 class="head-title">Counseling <em>Queue</em></h1>
+        <p class="head-lead">Declined leave applications routed for counseling. Tick when counseling is complete; the historical record is retained below.</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label>Search</label>
+          <input type="search" id="welfare-search" placeholder="ID, name…" />
+        </div>
+        <div class="filter export-group">
+          <button class="ghost-btn" id="welfareCsvBtn">⤓ Historical CSV</button>
+          <button class="ghost-btn" id="welfareXlsxBtn">⤓ Historical Excel</button>
+        </div>
+      </div>
+
+      <h3 class="sub-head">Active counseling queue</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SL</th>
+              <th>ID</th>
+              <th>Name</th>
+              <th>DOJ</th>
+              <th>Dept / Section / Sub</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Reason Declined</th>
+              <th>Done ✓</th>
+            </tr>
+          </thead>
+          <tbody id="welfare-body"></tbody>
+        </table>
+      </div>
+
+      <h3 class="sub-head">Historical record</h3>
+      <div class="table-wrap">
+        <table class="data-table compact">
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Dept</th><th>Start</th><th>End</th><th>Reason</th><th>Counseled On</th>
+            </tr>
+          </thead>
+          <tbody id="welfare-history-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MODULE E: REPORTS ===== -->
+    <section class="module" id="mod-reports" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;E · Management & HR</div>
+        <h1 class="head-title">Leave <em>Intelligence</em></h1>
+        <p class="head-lead">Roll-ups by day, week, month, quarter and year. Spot which departments, designations and leave types drive volume.</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label>Time Window</label>
+          <select id="reportWindow">
+            <option value="day">Today</option>
+            <option value="week">This Week</option>
+            <option value="month" selected>This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
+        <div class="filter-summary" id="reportSummary"></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-num" id="kpi-apps">0</div><div class="kpi-lab">Applications</div></div>
+        <div class="kpi"><div class="kpi-num" id="kpi-days">0</div><div class="kpi-lab">Total Days</div></div>
+        <div class="kpi"><div class="kpi-num" id="kpi-approved">0</div><div class="kpi-lab">Approval Rate</div></div>
+        <div class="kpi"><div class="kpi-num" id="kpi-unpaid">0</div><div class="kpi-lab">Unpaid Days</div></div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <div class="card-head"><span class="card-tag">By Department</span></div>
+          <canvas id="chart-dept"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><span class="card-tag">By Designation (Top 8)</span></div>
+          <canvas id="chart-desig"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><span class="card-tag">By Leave Type</span></div>
+          <canvas id="chart-type"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><span class="card-tag">Daily Trend</span></div>
+          <canvas id="chart-trend"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE F: FORECAST ===== -->
+    <section class="module" id="mod-forecast" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;F · Forecasting</div>
+        <h1 class="head-title">Leave <em>Foresight</em></h1>
+        <p class="head-lead">Forward-looking signals: absenteeism, seasonal spikes, Eid pressure and production risk.</p>
+      </div>
+
+      <div class="forecast-grid">
+        <div class="card forecast-card">
+          <div class="card-head"><span class="card-tag tag-amber">Next 30 Days</span><h2 class="card-title">Absenteeism Forecast</h2></div>
+          <canvas id="chart-absent"></canvas>
+          <div class="forecast-note" id="absent-note"></div>
+        </div>
+
+        <div class="card forecast-card">
+          <div class="card-head"><span class="card-tag">Seasonal Spikes</span><h2 class="card-title">Annual Pattern</h2></div>
+          <canvas id="chart-season"></canvas>
+        </div>
+
+        <div class="card forecast-card span-2">
+          <div class="card-head"><span class="card-tag tag-oxblood">Festival Pressure</span><h2 class="card-title">Eid / Pohela Boishakh Surge</h2></div>
+          <div id="festival-cards" class="festival-row"></div>
+        </div>
+
+        <div class="card forecast-card">
+          <div class="card-head"><span class="card-tag tag-amber">Production Risk</span><h2 class="card-title">Shortage Heat-map</h2></div>
+          <div class="heat-wrap" id="prodHeat"></div>
+        </div>
+
+        <div class="card forecast-card">
+          <div class="card-head"><span class="card-tag">By Department</span><h2 class="card-title">Projected Manpower Gap</h2></div>
+          <canvas id="chart-gap"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE G: MY FILE ===== -->
+    <section class="module" id="mod-myfile" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;G · Self-Service</div>
+        <h1 class="head-title">My Leave <em>File</em></h1>
+        <p class="head-lead">Enter your registered mobile number to open your personal leave file.</p>
+      </div>
+
+      <div class="card mobile-gate" id="mobileGate">
+        <label>Registered Mobile Number</label>
+        <div class="combo">
+          <input type="tel" id="mobile-input" placeholder="+8801XXXXXXXXX" />
+          <button class="primary-btn" id="openFileBtn">Open My File</button>
+        </div>
+        <div class="muted small">Or pick an Employee ID:&nbsp;
+          <select id="mobile-empPick"><option value="">— select —</option></select>
+        </div>
+      </div>
+
+      <div id="mobileFile" hidden>
+        <div class="card profile-card">
+          <div class="profile-id">
+            <div class="profile-photo" id="prof-mark"></div>
+            <div>
+              <div class="prof-name" id="prof-name"></div>
+              <div class="prof-meta" id="prof-meta"></div>
+            </div>
+            <button class="ghost-btn" id="closeFileBtn">Close</button>
+          </div>
+
+          <div class="bal-quad">
+            <div class="quad"><div class="q-lab">Casual Used</div><div class="q-val" id="q-cl"></div><div class="q-sub">of 10</div></div>
+            <div class="quad"><div class="q-lab">Sick Used</div><div class="q-val" id="q-sl"></div><div class="q-sub">of 14</div></div>
+            <div class="quad"><div class="q-lab">Annual Used</div><div class="q-val" id="q-al"></div><div class="q-sub">of 20</div></div>
+            <div class="quad"><div class="q-lab">Maternity Used</div><div class="q-val" id="q-ml"></div><div class="q-sub">of 120</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-tag">History</span><h2 class="card-title">All Leave Records</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Applied</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Paid / Unpaid</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="myfile-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE H: EMPLOYEE ADMIN ===== -->
+    <section class="module" id="mod-employees" hidden>
+      <div class="module-head">
+        <div class="head-eyebrow">Part&nbsp;H · Employee Admin</div>
+        <h1 class="head-title">Employee <em>Roster</em></h1>
+        <p class="head-lead">Add joiners, mark leavers, allocate leave balances, track required documents. The roster feeds every other module — Approval, Payroll, Welfare, Forecasting.</p>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="emp-kpis">
+        <div class="emp-kpi">
+          <span class="emp-kpi-label">Active employees</span>
+          <span class="emp-kpi-num" id="empKpiActive">—</span>
+        </div>
+        <div class="emp-kpi">
+          <span class="emp-kpi-label">Joined · 30 days</span>
+          <span class="emp-kpi-num" id="empKpiJoined">—</span>
+        </div>
+        <div class="emp-kpi">
+          <span class="emp-kpi-label">Terminated · 30 days</span>
+          <span class="emp-kpi-num" id="empKpiTerminated">—</span>
+        </div>
+        <div class="emp-kpi emp-kpi-alert">
+          <span class="emp-kpi-label">Pending docs</span>
+          <span class="emp-kpi-num" id="empKpiPendingDocs">—</span>
+          <span class="emp-kpi-meta" id="empKpiPendingMeta"></span>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="emp-actions">
+        <button class="primary-btn" id="empAddBtn">＋ Add Employee</button>
+        <button class="ghost-btn" id="empBulkBtn">⬆ Bulk Import</button>
+        <button class="ghost-btn" id="empTemplateBtn">⬇ Template (CSV)</button>
+        <button class="ghost-btn" id="empExportBtn">⬇ Export Roster (Excel)</button>
+        <div class="emp-actions-spacer"></div>
+        <input type="search" id="empSearch" class="emp-search" placeholder="Search ID / name / mobile / NID…" />
+        <select id="empStatusFilter" class="emp-filter">
+          <option value="Active">Active</option>
+          <option value="Terminated">Terminated</option>
+          <option value="">All status</option>
+        </select>
+        <select id="empDeptFilter" class="emp-filter">
+          <option value="">All departments</option>
+        </select>
+      </div>
+
+      <!-- Roster table -->
+      <div class="table-wrap">
+        <table class="data-table emp-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name · Mobile</th>
+              <th>Designation</th>
+              <th>Placement</th>
+              <th>DOJ · Service</th>
+              <th>Status</th>
+              <th>Docs</th>
+              <th>Allocation (CL/SL/AL)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="emp-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============== TOAST ============== -->
+<div class="toast" id="toast" hidden><span id="toastMsg"></span></div>
+
+<!-- ============== EMPLOYEE ADD/EDIT DIALOG ============== -->
+<dialog id="empDialog" class="dialog dialog-wide">
+  <form method="dialog" class="dialog-form emp-dialog-form">
+    <div class="dialog-head">
+      <h3 id="empDialogTitle">Add Employee</h3>
+      <p class="dialog-sub" id="empDialogSub">All <em>starred</em> fields are required.</p>
+    </div>
+
+    <div class="emp-form-grid">
+      <fieldset class="emp-fieldset">
+        <legend>① Identity</legend>
+        <div class="emp-row">
+          <label>Employee ID *<input type="text" id="empF-id" placeholder="EMP-1081" required/></label>
+          <label>Full Name (English) *<input type="text" id="empF-name" required/></label>
+        </div>
+        <div class="emp-row">
+          <label>Mobile *<input type="tel" id="empF-mobile" placeholder="+8801XXXXXXXXX" required/></label>
+          <label>NID / Birth Cert.<input type="text" id="empF-nid"/></label>
+        </div>
+        <div class="emp-row">
+          <label>Date of Birth<input type="date" id="empF-dob"/></label>
+          <label>Gender
+            <select id="empF-gender">
+              <option value="">—</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="O">Other</option>
+            </select>
+          </label>
+          <label>DOJ *<input type="date" id="empF-doj" required/></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="emp-fieldset">
+        <legend>② Placement</legend>
+        <div class="emp-row">
+          <label>Designation *<input type="text" id="empF-designation" list="empF-designation-list" required/>
+            <datalist id="empF-designation-list"></datalist>
+          </label>
+          <label>Department *<input type="text" id="empF-department" list="empF-department-list" required/>
+            <datalist id="empF-department-list"></datalist>
+          </label>
+        </div>
+        <div class="emp-row">
+          <label>Section<input type="text" id="empF-section"/></label>
+          <label>Sub-Section<input type="text" id="empF-subSection"/></label>
+        </div>
+        <div class="emp-row">
+          <label>Line<input type="text" id="empF-line" placeholder="L-01"/></label>
+          <label>Unit<input type="text" id="empF-unit" placeholder="Unit-1"/></label>
+        </div>
+        <div class="emp-row">
+          <label>Building<input type="text" id="empF-building" placeholder="Bldg-A"/></label>
+          <label>Floor<input type="text" id="empF-floor" placeholder="3rd Floor"/></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="emp-fieldset">
+        <legend>③ Leave Allocation (this year)</legend>
+        <div class="alloc-toggle">
+          <label class="ck"><input type="radio" name="allocMode" id="allocAuto" value="auto" checked> Auto pro-rate from DOJ <span class="muted small" id="allocAutoHint">(uses Bangladesh Labour Act defaults)</span></label>
+          <label class="ck"><input type="radio" name="allocMode" id="allocCustom" value="custom"> Custom override</label>
+        </div>
+        <div class="emp-row alloc-row">
+          <label>Casual<input type="number" id="empF-allocCL" min="0" max="30" step="1"/></label>
+          <label>Sick<input type="number" id="empF-allocSL" min="0" max="30" step="1"/></label>
+          <label>Annual<input type="number" id="empF-allocAL" min="0" max="40" step="1"/></label>
+        </div>
+        <p class="muted small">Maternity is statutory (120 days, paid). It is granted on event, not allocated up front.</p>
+      </fieldset>
+
+      <fieldset class="emp-fieldset emp-docs-fieldset">
+        <legend>④ Required Documents Checklist</legend>
+        <div class="docs-grid">
+          <label class="ck"><input type="checkbox" data-doc="nid"> NID / Birth Cert copy</label>
+          <label class="ck"><input type="checkbox" data-doc="photo"> Passport-size photos</label>
+          <label class="ck"><input type="checkbox" data-doc="joiningLetter"> Joining letter</label>
+          <label class="ck"><input type="checkbox" data-doc="contract"> Appointment / Contract</label>
+          <label class="ck"><input type="checkbox" data-doc="bankAccount"> Bank account details</label>
+          <label class="ck"><input type="checkbox" data-doc="medical"> Medical fitness certificate</label>
+          <label class="ck"><input type="checkbox" data-doc="education"> Educational certificates</label>
+          <label class="ck"><input type="checkbox" data-doc="release"> Previous employer release</label>
+          <label class="ck"><input type="checkbox" data-doc="serviceBook"> Service book entry</label>
+          <label class="ck"><input type="checkbox" data-doc="emergency"> Emergency contact form</label>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="dialog-actions">
+      <button value="cancel" class="ghost-btn" type="button" id="empDialogCancel">Cancel</button>
+      <button value="save" class="primary-btn" id="empDialogSave">Save Employee</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============== TERMINATE DIALOG ============== -->
+<dialog id="termDialog" class="dialog">
+  <form method="dialog" class="dialog-form">
+    <h3>Terminate / Separate Employee</h3>
+    <p class="muted small" id="termSubject"></p>
+    <label>Last Working Day *<input type="date" id="termF-date" required/></label>
+    <label>Separation Reason *
+      <select id="termF-reason" required>
+        <option value="">—</option>
+        <option>Resignation</option>
+        <option>Contract End</option>
+        <option>Termination (Misconduct)</option>
+        <option>Retirement</option>
+        <option>Retrenchment</option>
+        <option>Death</option>
+        <option>Absconding</option>
+      </select>
+    </label>
+    <label>Remarks<textarea id="termF-remarks" rows="2"></textarea></label>
+    <label class="ck"><input type="checkbox" id="termF-clearance"> Clearance & dues settled</label>
+    <div class="dialog-actions">
+      <button value="cancel" class="ghost-btn" type="button" id="termDialogCancel">Cancel</button>
+      <button value="confirm" class="primary-btn warn" id="termDialogConfirm">Confirm Separation</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============== BULK IMPORT DIALOG ============== -->
+<dialog id="bulkDialog" class="dialog dialog-wide">
+  <form method="dialog" class="dialog-form">
+    <div class="dialog-head">
+      <h3>Bulk Import Employees</h3>
+      <p class="dialog-sub">Upload an Excel (.xlsx) or CSV file. Headers must match the template. Each row is validated before commit.</p>
+    </div>
+
+    <div class="bulk-step" id="bulkStep1">
+      <div class="bulk-drop" id="bulkDrop">
+        <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls" hidden/>
+        <div class="bulk-drop-inner">
+          <div class="bulk-drop-icon">⬆</div>
+          <div class="bulk-drop-text">Click or drop file here</div>
+          <div class="bulk-drop-hint">.xlsx, .xls, or .csv — first row is headers</div>
+        </div>
+      </div>
+      <p class="muted small">Need the format? <a href="#" id="bulkTemplateLink">Download the template</a> — Excel columns: ID, Name, Designation, Department, Section, SubSection, Line, Unit, DOJ, Mobile, NID, DOB, Gender, CL, SL, AL.</p>
+    </div>
+
+    <div class="bulk-step" id="bulkStep2" hidden>
+      <div class="bulk-summary" id="bulkSummary"></div>
+      <div class="table-wrap bulk-preview-wrap">
+        <table class="data-table bulk-preview">
+          <thead id="bulkPreviewHead"></thead>
+          <tbody id="bulkPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button value="cancel" class="ghost-btn" type="button" id="bulkDialogCancel">Cancel</button>
+      <button value="back" class="ghost-btn" type="button" id="bulkBackBtn" hidden>← Choose different file</button>
+      <button value="commit" class="primary-btn" id="bulkCommitBtn" hidden disabled>Import Valid Rows</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============== SETTINGS DIALOG ============== -->
+<dialog id="settingsDialog" class="dialog">
+  <form method="dialog" class="dialog-form">
+    <h3>Settings</h3>
+    <label>Google Apps Script Web App URL</label>
+    <input type="url" id="apiUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" />
+    <label class="ck"><input type="checkbox" id="useRemote"> Send writes to Google Sheets</label>
+    <p class="muted small">Leaving this blank uses local storage only. The Apps Script file is in <code>apps-script/Code.gs</code>.</p>
+    <div class="dialog-actions">
+      <button value="cancel" class="ghost-btn">Cancel</button>
+      <button value="save" class="primary-btn" id="saveSettings">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============== LIBS ============== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app.js?v=pilotA-2026-06-17"></script>
+
+</body>
+</html>
