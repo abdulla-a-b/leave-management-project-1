@@ -3,824 +3,1381 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Leave Atlas — Workforce Leave Management System</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=pilotA-2026-06-17">
+<title>ORSVAI — Project Development Accountability Board</title>
+<meta name="description" content="ORSVAI Excellence Accountability Framework — department-wise project development task board for management review." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  /* ORSVAI role accents (native to the framework) */
+  --o:#2563EB; --r:#16A34A; --s:#EA580C; --v:#7C3AED; --a:#0D9488; --i:#0EA5E9;
+  --o-soft:#E5EDFE; --r-soft:#E3F3E9; --s-soft:#FDEBE0; --v-soft:#EEE7FB; --a-soft:#E0F2F0; --i-soft:#E2F4FC;
+  /* status / scoring */
+  --done:#16A34A; --prog:#2563EB; --delay:#F59E0B; --notstart:#EF4444;
+  /* shell */
+  --ink:#16243E; --ink-deep:#0F1B30; --bg:#EEF1F6; --panel:#FFFFFF;
+  --text:#1E293B; --muted:#647488; --hair:#E4E8EF; --hair-2:#EDF0F5;
+  --shadow:0 1px 2px rgba(16,33,64,.05),0 8px 24px rgba(16,33,64,.06);
+  --shadow-lg:0 12px 40px rgba(16,33,64,.14);
+  --radius:14px; --radius-sm:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,.disp{font-family:'Sora',sans-serif;letter-spacing:-.02em}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ---------- Top shell ---------- */
+.shell{background:linear-gradient(135deg,var(--ink-deep),var(--ink));color:#fff}
+.shell-inner{max-width:1320px;margin:0 auto;padding:18px 26px}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:16px}
+.brand .logo{font-family:'Sora';font-weight:800;font-size:34px;line-height:1;letter-spacing:.01em}
+.brand .logo span:nth-child(1){color:#fff}
+.brand-sub{font-size:12.5px;color:#A9B6CC;font-weight:500;max-width:230px;border-left:2px solid rgba(255,255,255,.18);padding-left:14px}
+.brand-sub b{color:#fff;font-weight:600}
+.kpibar{display:flex;gap:10px;flex-wrap:wrap}
+.kpi-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:9px 14px;min-width:104px}
+.kpi-chip .v{font-family:'Sora';font-weight:700;font-size:21px;line-height:1}
+.kpi-chip .l{font-size:10.5px;color:#9FB0CA;text-transform:uppercase;letter-spacing:.07em;margin-top:4px}
+
+/* ---------- ORSVAI rail (signature) ---------- */
+.rail{max-width:1320px;margin:0 auto;padding:0 26px}
+.rail-track{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:-26px;position:relative;z-index:2;display:flex;align-items:stretch;overflow:hidden;border:1px solid var(--hair)}
+.rail-node{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px 13px;position:relative;text-align:center}
+.rail-node:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:18px;height:18px;transform:translateY(-50%) rotate(45deg);background:var(--panel);border-top:1px solid var(--hair);border-right:1px solid var(--hair);z-index:3}
+.rail-badge{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:'Sora';font-weight:800;font-size:16px}
+.rail-name{font-family:'Sora';font-weight:700;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+.rail-role{font-size:10.5px;color:var(--muted);line-height:1.25;max-width:150px}
+.r-o .rail-badge{background:var(--o)} .r-o .rail-name{color:var(--o)}
+.r-r .rail-badge{background:var(--r)} .r-r .rail-name{color:var(--r)}
+.r-s .rail-badge{background:var(--s)} .r-s .rail-name{color:var(--s)}
+.r-v .rail-badge{background:var(--v)} .r-v .rail-name{color:var(--v)}
+.r-a .rail-badge{background:var(--a)} .r-a .rail-name{color:var(--a)}
+.r-i .rail-badge{background:var(--i)} .r-i .rail-name{color:var(--i)}
+
+/* ---------- Tabs ---------- */
+.tabs{max-width:1320px;margin:22px auto 0;padding:0 26px;display:flex;gap:6px;flex-wrap:wrap}
+.tab{appearance:none;border:1px solid var(--hair);background:var(--panel);color:var(--muted);font-family:'Sora';font-weight:600;font-size:13.5px;padding:11px 18px;border-radius:11px 11px 0 0;cursor:pointer;display:flex;align-items:center;gap:9px;transition:.16s;border-bottom:none}
+.tab .n{font-family:'JetBrains Mono';font-weight:700;font-size:11px;background:var(--bg);color:var(--muted);border-radius:6px;padding:2px 7px}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink);box-shadow:0 -3px 0 var(--ink) inset;background:var(--panel)}
+.tab.active .n{background:var(--ink);color:#fff}
+
+/* ---------- Layout ---------- */
+main{max-width:1320px;margin:0 auto;padding:0 26px 70px}
+.view{display:none;animation:fade .3s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.panel{background:var(--panel);border:1px solid var(--hair);border-radius:0 var(--radius) var(--radius) var(--radius);box-shadow:var(--shadow);padding:26px}
+.panel.flat{border-radius:var(--radius)}
+.view-head{margin-bottom:22px}
+.view-head h2{font-size:22px;color:var(--ink);font-weight:700}
+.view-head p{color:var(--muted);font-size:13.5px;margin-top:4px;max-width:760px}
+.eyebrow{font-family:'JetBrains Mono';font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--s);margin-bottom:7px}
+
+/* ---------- Forms ---------- */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:7px}
+.field .hint{font-size:11px;color:var(--muted);font-weight:400}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--text);background:#fff;border:1.5px solid var(--hair);border-radius:var(--radius-sm);padding:10px 12px;transition:.15s;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px var(--o-soft)}
+textarea{resize:vertical;min-height:72px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ORSVAI assignment grid */
+.orsvai-assign{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:4px}
+.oa-cell{border:1.5px solid var(--hair);border-radius:var(--radius-sm);padding:10px;display:flex;flex-direction:column;gap:7px}
+.oa-cell .tag{display:flex;align-items:center;gap:6px;font-family:'Sora';font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase}
+.oa-cell .b{width:20px;height:20px;border-radius:50%;color:#fff;display:grid;place-items:center;font-family:'Sora';font-weight:800;font-size:11px}
+.oa-cell input{font-size:12.5px;padding:7px 9px}
+.oa-o{border-top:3px solid var(--o)} .oa-o .tag{color:var(--o)} .oa-o .b{background:var(--o)}
+.oa-r{border-top:3px solid var(--r)} .oa-r .tag{color:var(--r)} .oa-r .b{background:var(--r)}
+.oa-s{border-top:3px solid var(--s)} .oa-s .tag{color:var(--s)} .oa-s .b{background:var(--s)}
+.oa-v{border-top:3px solid var(--v)} .oa-v .tag{color:var(--v)} .oa-v .b{background:var(--v)}
+.oa-a{border-top:3px solid var(--a)} .oa-a .tag{color:var(--a)} .oa-a .b{background:var(--a)}
+.oa-i{border-top:3px solid var(--i)} .oa-i .tag{color:var(--i)} .oa-i .b{background:var(--i)}
+
+/* ---------- Buttons ---------- */
+.btn{appearance:none;border:none;font-family:'Sora';font-weight:600;font-size:13.5px;border-radius:var(--radius-sm);padding:11px 20px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{background:var(--ink-deep)}
+.btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--hair)}
+.btn-ghost:hover{border-color:var(--ink)}
+.btn-ok{background:var(--r);color:#fff}.btn-ok:hover{filter:brightness(.93)}
+.btn-danger{background:#fff;color:var(--notstart);border:1.5px solid #FAD4D4}.btn-danger:hover{background:#FEF2F2}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row-actions{display:flex;gap:18px;align-items:center;margin-top:8px;flex-wrap:wrap}
+
+/* ---------- Cards / tasks ---------- */
+.deptblock{margin-bottom:26px}
+.deptblock>h3{font-size:15px;color:var(--ink);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.deptblock>h3 .count{font-family:'JetBrains Mono';font-size:11px;font-weight:700;background:var(--bg);color:var(--muted);border-radius:20px;padding:3px 10px}
+.deptblock>h3 .bar{flex:1;height:1px;background:var(--hair)}
+.tcard{border:1px solid var(--hair);border-radius:var(--radius);padding:0;overflow:hidden;background:#fff;margin-bottom:12px;box-shadow:var(--shadow)}
+.tcard-top{padding:15px 18px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--hair-2)}
+.tcard-top .title{flex:1}
+.tcard-top .title h4{font-size:15px;color:var(--ink);font-weight:700}
+.tcard-top .title p{font-size:12.5px;color:var(--muted);margin-top:3px}
+.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.chip{font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px;background:var(--bg);color:var(--muted)}
+.chip.prio-high{background:#FEF2F2;color:#DC2626}.chip.prio-med{background:#FFFBEB;color:#D97706}.chip.prio-low{background:#F0FDF4;color:#16A34A}
+.status-pill{font-family:'Sora';font-weight:700;font-size:11px;border-radius:20px;padding:4px 12px;color:#fff;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.st-done{background:var(--done)}.st-prog{background:var(--prog)}.st-delay{background:var(--delay)}.st-notstart{background:var(--notstart)}
+.approved-flag{background:var(--a-soft);color:var(--a);border:1px solid #B8E0DB}
+.matrix-strip{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--hair-2)}
+.ms-cell{padding:9px 11px;border-right:1px solid var(--hair-2);min-height:54px}
+.ms-cell:last-child{border-right:none}
+.ms-cell .lbl{font-family:'Sora';font-weight:800;font-size:10px;letter-spacing:.05em;display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.ms-cell .who{font-size:12px;color:var(--text);font-weight:500;line-height:1.3}
+.ms-cell .who.empty{color:#B6C0CE;font-style:italic;font-weight:400}
+.ms-cell.c-o .lbl{color:var(--o)}.ms-cell.c-r .lbl{color:var(--r)}.ms-cell.c-s .lbl{color:var(--s)}
+.ms-cell.c-v .lbl{color:var(--v)}.ms-cell.c-a .lbl{color:var(--a)}.ms-cell.c-i .lbl{color:var(--i)}
+.tcard-foot{padding:11px 18px;display:flex;align-items:center;gap:10px;justify-content:space-between;background:#FBFCFE;flex-wrap:wrap}
+.tcard-foot .dates{font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.tcard-foot .dates b{color:var(--ink);font-weight:600}
+.foot-actions{display:flex;gap:8px}
+
+/* ---------- Progress ---------- */
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kcard{background:#fff;border:1px solid var(--hair);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.kcard.k-done::before{background:var(--done)}.kcard.k-prog::before{background:var(--prog)}
+.kcard.k-delay::before{background:var(--delay)}.kcard.k-risk::before{background:var(--notstart)}
+.kcard .num{font-family:'Sora';font-weight:800;font-size:30px;color:var(--ink);line-height:1}
+.kcard .cap{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
+.deptprog{border:1px solid var(--hair);border-radius:var(--radius);padding:15px 18px;margin-bottom:12px;background:#fff;box-shadow:var(--shadow)}
+.deptprog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.deptprog-head .name{font-family:'Sora';font-weight:700;font-size:14px;color:var(--ink)}
+.deptprog-head .pct{font-family:'Sora';font-weight:800;font-size:18px}
+.track{height:11px;border-radius:20px;background:var(--hair);overflow:hidden;display:flex}
+.track>span{height:100%}
+.seg-done{background:var(--done)}.seg-prog{background:var(--prog)}.seg-delay{background:var(--delay)}.seg-notstart{background:var(--notstart)}
+.track-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.track-legend span{display:flex;align-items:center;gap:6px}
+
+/* risk register */
+.risk-item{display:flex;gap:13px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--hair-2)}
+.risk-item:last-child{border-bottom:none}
+.risk-sev{width:6px;align-self:stretch;border-radius:4px;flex-shrink:0}
+.sev-high{background:var(--notstart)}.sev-med{background:var(--delay)}.sev-low{background:var(--prog)}
+.risk-body{flex:1}
+.risk-body .rt{font-weight:600;font-size:13.5px;color:var(--ink)}
+.risk-body .rd{font-size:12.5px;color:var(--muted);margin-top:3px}
+.risk-tag{font-family:'JetBrains Mono';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:6px;flex-shrink:0}
+.rtag-high{background:#FEF2F2;color:#DC2626}.rtag-med{background:#FFFBEB;color:#D97706}.rtag-low{background:#EFF6FF;color:#2563EB}
+
+/* board view */
+.board-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.chartbox{background:#fff;border:1px solid var(--hair);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.chartbox h3{font-size:14px;color:var(--ink);margin-bottom:4px}
+.chartbox .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.chart-wrap{position:relative;height:260px}
+.score-table{width:100%;border-collapse:collapse;font-size:13px}
+.score-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:2px solid var(--hair)}
+.score-table td{padding:10px;border-bottom:1px solid var(--hair-2);color:var(--text)}
+.score-table tr:hover td{background:#FBFCFE}
+.score-table .dept-n{font-weight:600;color:var(--ink)}
+.minibar{height:7px;border-radius:20px;background:var(--hair);overflow:hidden;width:90px;display:inline-block;vertical-align:middle}
+.minibar>span{display:block;height:100%;background:var(--o)}
+.verdict{font-family:'JetBrains Mono';font-weight:700;font-size:11px;padding:3px 9px;border-radius:6px}
+.v-strong{background:#F0FDF4;color:#16A34A}.v-watch{background:#FFFBEB;color:#D97706}.v-risk{background:#FEF2F2;color:#DC2626}
+
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty .ico{font-size:34px;margin-bottom:10px;opacity:.4}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(15,27,48,.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.scrim.show{display:flex}
+.modal{background:#fff;border-radius:var(--radius);max-width:380px;width:100%;padding:26px;box-shadow:var(--shadow-lg)}
+.modal h3{font-size:17px;color:var(--ink);margin-bottom:6px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:16px}
+.modal .modal-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.lock-note{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;background:var(--v-soft);border:1px solid #E0D5F5;color:var(--v);border-radius:var(--radius-sm);padding:10px 13px;margin-bottom:18px}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;font-size:13.5px;font-weight:500;padding:12px 22px;border-radius:30px;box-shadow:var(--shadow-lg);opacity:0;transition:.3s;z-index:60;display:flex;align-items:center;gap:9px}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+footer{background:var(--ink-deep);color:#fff;text-align:center;padding:18px;font-family:'Sora';font-weight:600;font-size:13px;letter-spacing:.02em}
+footer span{color:#7E8FAD;font-weight:500}
+footer a{color:#C2CEE2;text-decoration:none;font-weight:600}
+footer a:hover{color:#fff;text-decoration:underline}
+
+/* ---------- guulba wordmark (per-letter colours) ---------- */
+.gmark{font-family:'Sora',sans-serif;font-weight:800;font-style:normal;display:inline-flex;letter-spacing:.01em;line-height:1}
+.gmark i{font-style:normal}
+.gmark i:nth-child(1){color:#F59E0B} /* g amber  */
+.gmark i:nth-child(2){color:#06B6D4} /* u cyan   */
+.gmark i:nth-child(3){color:#22C55E} /* u green  */
+.gmark i:nth-child(4){color:#8B5CF6} /* l purple */
+.gmark i:nth-child(5){color:#F97316} /* b orange */
+.gmark i:nth-child(6){color:#EC4899} /* a rose   */
+.brand-right{display:flex;flex-direction:column;align-items:flex-end;gap:11px}
+.powered{display:flex;align-items:center;gap:8px}
+.powered-by{font-size:10px;color:#9FB0CA;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+@media(max-width:560px){.brand-right{align-items:flex-start}}
+
+@media(max-width:980px){
+  .board-grid{grid-template-columns:1fr}
+  .g2,.g3{grid-template-columns:1fr}
+  .kgrid{grid-template-columns:1fr 1fr}
+  .orsvai-assign{grid-template-columns:repeat(2,1fr)}
+  .matrix-strip{grid-template-columns:repeat(3,1fr)}
+  .ms-cell:nth-child(3n){border-right:none}
+  .rail-track{flex-wrap:wrap}.rail-node{flex:1 1 33%}.rail-node::after{display:none}
+}
+@media(max-width:560px){
+  .shell-inner,.rail,.tabs,main{padding-left:14px;padding-right:14px}
+  .kgrid{grid-template-columns:1fr 1fr}
+  .brand .logo{font-size:27px}
+}
+/* ---------- near-deadline emphasis ---------- */
+.tcard{position:relative}
+.tcard[data-urg="overdue"]{border-color:#F4A8A8}
+.tcard[data-urg="urgent"]{border-color:#F8B4B4;box-shadow:0 0 0 1px #F8B4B4,0 10px 30px rgba(239,68,68,.16)}
+.tcard[data-urg="soon"]{border-color:#FBD88A;box-shadow:0 0 0 1px #FBD88A,0 8px 24px rgba(245,158,11,.14)}
+.urg-flag{font-family:'JetBrains Mono';font-weight:700;font-size:10.5px;letter-spacing:.04em;border-radius:20px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px}
+.urg-overdue{background:#FEF2F2;color:#DC2626}.urg-urgent{background:#FEF2F2;color:#DC2626}
+.urg-soon{background:#FFFBEB;color:#D97706}
+@keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.55}}
+.urg-flag .pd{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulseDot 1.5s ease-in-out infinite}
+.due-tip{position:absolute;top:10px;right:12px;width:240px;background:var(--ink-deep);color:#fff;border-radius:12px;padding:13px 15px;box-shadow:var(--shadow-lg);opacity:0;transform:translateY(-4px);pointer-events:none;transition:.18s;z-index:8}
+.tcard[data-urg]:not([data-urg="normal"]):hover .due-tip{opacity:1;transform:none}
+.due-tip .cd{font-family:'Sora';font-weight:800;font-size:22px;line-height:1}
+.due-tip .cd small{font-size:12px;font-weight:600;color:#9FB0CA}
+.due-tip .nx{font-size:11.5px;color:#C2CEE2;margin-top:8px;line-height:1.4}
+.due-tip .nx b{color:#fff}
+
+/* focus strip */
+.focus-wrap{margin-bottom:22px}
+.focus-wrap h3{font-size:13px;color:var(--ink);font-family:'Sora';display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.focus-strip{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:thin}
+.focus-card{min-width:236px;flex-shrink:0;border:1px solid var(--hair);border-left:4px solid var(--delay);border-radius:12px;padding:13px 15px;background:#fff;box-shadow:var(--shadow)}
+.focus-card.fc-urgent{border-left-color:var(--notstart)}.focus-card.fc-overdue{border-left-color:var(--notstart);background:#FFFBFB}
+.focus-card .fc-cd{font-family:'Sora';font-weight:800;font-size:17px;color:var(--ink)}
+.focus-card .fc-cd.late{color:var(--notstart)}
+.focus-card .fc-t{font-size:13px;font-weight:600;color:var(--ink);margin:5px 0 2px;line-height:1.3}
+.focus-card .fc-d{font-size:11.5px;color:var(--muted)}
+.focus-card .fc-o{font-size:11.5px;color:var(--o);margin-top:7px;font-weight:600}
+
+/* period toggle + trend */
+.seg-toggle{display:inline-flex;background:var(--bg);border-radius:11px;padding:3px;gap:2px}
+.seg-toggle button{appearance:none;border:none;background:none;font-family:'Sora';font-weight:600;font-size:12.5px;color:var(--muted);padding:7px 15px;border-radius:8px;cursor:pointer;transition:.14s}
+.seg-toggle button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.period-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.delta-chip{font-family:'Sora';font-weight:700;font-size:12.5px;border-radius:20px;padding:5px 13px;display:inline-flex;align-items:center;gap:6px}
+.delta-up{background:#F0FDF4;color:#16A34A}.delta-down{background:#FEF2F2;color:#DC2626}.delta-flat{background:var(--bg);color:var(--muted)}
+
+/* feedback loop */
+.needs-update{background:var(--s-soft);color:var(--s);border:1px solid #F6C9A8}
+.fb-note{background:#FFF8F2;border:1px solid #F6D9BE;border-radius:10px;padding:9px 12px;font-size:12px;color:#9A4A12;margin:0 18px 12px}
+.fb-note b{color:var(--s)}
+.update-banner{background:linear-gradient(120deg,var(--s-soft),#fff);border:1px solid #F6C9A8;border-radius:var(--radius);padding:15px 18px;margin-bottom:22px}
+.update-banner h4{font-size:13.5px;color:var(--s);font-family:'Sora';display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.uq-item{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--hair);border-radius:10px;padding:9px 13px;margin-bottom:8px}
+.uq-item:last-child{margin-bottom:0}
+.uq-item .uq-t{flex:1;font-size:13px;font-weight:600;color:var(--ink)}
+.uq-item .uq-fb{font-size:11.5px;color:var(--muted);font-weight:400}
+.edit-mode-bar{display:none;background:var(--o-soft);border:1px solid #BFD4FB;border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:12.5px;color:var(--o);align-items:center;gap:10px}
+.edit-mode-bar.show{display:flex}
+
+/* engagement */
+.eng-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.eng-card{background:linear-gradient(135deg,var(--ink),var(--ink-deep));color:#fff;border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden}
+.eng-card .num{font-family:'Sora';font-weight:800;font-size:28px;line-height:1}
+.eng-card .cap{font-size:11.5px;color:#A9B6CC;margin-top:6px}
+.eng-card .ico{position:absolute;right:14px;top:13px;font-size:20px;opacity:.5}
+.lb-row{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--hair-2)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:'Sora';font-weight:800;font-size:13px;background:var(--bg);color:var(--muted);flex-shrink:0}
+.lb-rank.gold{background:#FEF3C7;color:#B45309}.lb-rank.silver{background:#F1F5F9;color:#475569}.lb-rank.bronze{background:#FCE9DC;color:#B45309}
+.lb-name{flex:1;font-weight:600;font-size:13.5px;color:var(--ink)}
+.lb-name small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.lb-pts{font-family:'JetBrains Mono';font-weight:700;font-size:14px;color:var(--ink)}
+.lb-pts small{font-size:10px;color:var(--muted);font-weight:500}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.badge{font-size:11px;font-weight:600;border-radius:20px;padding:4px 11px;display:inline-flex;align-items:center;gap:5px;background:var(--bg);color:var(--muted)}
+.badge.earned{background:var(--a-soft);color:var(--a)}
+
+/* confetti */
+.confetti-pc{position:fixed;width:9px;height:14px;top:-20px;z-index:90;pointer-events:none;border-radius:2px}
+
+/* ---------- site sign-in gate ---------- */
+.gate{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,var(--ink-deep),var(--ink) 55%,#1d3a63);display:grid;place-items:center;padding:24px;transition:opacity .35s ease}
+.gate.hide{opacity:0;pointer-events:none}
+.gate-card{width:100%;max-width:380px;background:var(--panel);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.4);padding:34px 32px;text-align:center}
+.gate-rail{display:flex;justify-content:center;gap:7px;margin-bottom:20px}
+.gate-rail span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:'Sora';font-weight:800;font-size:14px}
+.gate-brand{font-family:'Sora';font-weight:800;font-size:32px;letter-spacing:.01em;color:var(--ink);line-height:1}
+.gate-sub{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-top:6px}
+.gate-msg{font-size:13.5px;color:var(--text);margin:20px 0 16px}
+.gate-card .field input{text-align:center;font-size:15px;padding:12px}
+.gate-err{font-size:12.5px;color:var(--notstart);font-weight:600;min-height:18px;margin-top:10px}
+.gate-foot{font-size:11px;color:var(--muted);margin-top:18px}
+
+@media(max-width:980px){.eng-grid{grid-template-columns:1fr 1fr}}
+
+</style>
 </head>
 <body>
 
-<!-- ============== APP SHELL ============== -->
-<div class="app">
-
-  <!-- ============== SIDEBAR ============== -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 32 32" fill="none">
-          <rect x="2" y="2" width="28" height="28" rx="2" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M8 10h16M8 16h10M8 22h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
-          <circle cx="22" cy="16" r="2.5" fill="currentColor"/>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-name">Leave Atlas <span class="brand-pilot">Pilot · A</span></div>
-        <div class="brand-sub">Workforce Leave Mgmt.</div>
-      </div>
+<!-- ============ SIGN-IN GATE ============ -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-rail">
+      <span style="background:var(--o)">O</span><span style="background:var(--r)">R</span><span style="background:var(--s)">S</span><span style="background:var(--v)">V</span><span style="background:var(--a)">A</span><span style="background:var(--i)">I</span>
     </div>
-
-    <div class="role-switcher">
-      <label class="role-label">Acting as</label>
-      <select id="roleSelect">
-        <option value="employee">Employee</option>
-        <option value="dept_head">Dept. Head / Reporting Mgr.</option>
-        <option value="payroll">Payroll Officer</option>
-        <option value="welfare">Welfare & Counseling</option>
-        <option value="hr">Management & HR</option>
-        <option value="forecast">Forecasting Analyst</option>
-        <option value="hradmin">HR · Employee Admin</option>
-      </select>
-    </div>
-
-    <nav class="nav" id="nav">
-      <a href="#" data-module="apply" data-roles="employee">
-        <span class="nav-letter">A</span>
-        <span class="nav-text">Apply for Leave</span>
-      </a>
-      <a href="#" data-module="approval" data-roles="dept_head">
-        <span class="nav-letter">B</span>
-        <span class="nav-text">Approval Queue</span>
-        <span class="nav-badge" id="badge-approval">0</span>
-      </a>
-      <a href="#" data-module="payroll" data-roles="payroll">
-        <span class="nav-letter">C</span>
-        <span class="nav-text">Payroll Entry</span>
-        <span class="nav-badge" id="badge-payroll">0</span>
-      </a>
-      <a href="#" data-module="welfare" data-roles="welfare">
-        <span class="nav-letter">D</span>
-        <span class="nav-text">Welfare & Counseling</span>
-        <span class="nav-badge" id="badge-welfare">0</span>
-      </a>
-      <a href="#" data-module="reports" data-roles="hr">
-        <span class="nav-letter">E</span>
-        <span class="nav-text">HR Reports</span>
-      </a>
-      <a href="#" data-module="forecast" data-roles="forecast">
-        <span class="nav-letter">F</span>
-        <span class="nav-text">Forecast Trends</span>
-      </a>
-      <a href="#" data-module="myfile" data-roles="employee">
-        <span class="nav-letter">G</span>
-        <span class="nav-text">My Leave File</span>
-      </a>
-      <a href="#" data-module="employees" data-roles="hradmin payroll hr">
-        <span class="nav-letter">H</span>
-        <span class="nav-text">Employee Admin</span>
-        <span class="nav-badge" id="badge-employees">0</span>
-      </a>
-    </nav>
-
-    <div class="sidebar-foot">
-      <button class="link-btn" id="clearBtn" title="Clear all data">Reset</button>
-      <div class="foot-meta">
-        <span id="connStatus" class="dot dot-local">●</span>
-        <span id="connText">Local mode</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ============== MAIN ============== -->
-  <main class="main">
-
-    <!-- ============== TOP BAR ============== -->
-    <header class="topbar">
-      <div class="crumbs">
-        <span class="crumb-mod">Module</span>
-        <span class="crumb-sep">/</span>
-        <span class="crumb-name" id="crumbName">Apply for Leave</span>
-      </div>
-      <div class="topbar-right">
-        <div class="today">
-          <span class="today-label">Today</span>
-          <span class="today-date" id="todayDate"></span>
-        </div>
-        <button class="ghost-btn" id="settingsBtn">⚙ Settings</button>
-      </div>
-    </header>
-
-    <!-- ============== PILOT WELCOME BANNER (empty-roster onboarding) ============== -->
-    <div class="welcome-banner" id="welcomeBanner" hidden>
-      <div class="welcome-inner">
-        <div class="welcome-eyebrow">Project A · Pilot Setup</div>
-        <h2 class="welcome-title">Welcome — your roster is empty.</h2>
-        <p class="welcome-lead">This is a fresh pilot deployment. Follow these four steps to go live:</p>
-        <ol class="welcome-steps">
-          <li><strong>Connect Google Sheets</strong> — open <button class="link-btn welcome-link" data-act="openSettings">⚙ Settings</button> and paste your Apps Script Web App URL.</li>
-          <li><strong>Import or add employees</strong> — go to <button class="link-btn welcome-link" data-act="gotoEmployees">Part H · Employee Admin</button> and either bulk-import an Excel/CSV file or add joiners one by one.</li>
-          <li><strong>Employees can apply</strong> — once the roster is loaded, Part A and Part G become usable for staff.</li>
-          <li><strong>Department heads approve</strong> — Part B for approvals, Part C for payroll, Part D for welfare.</li>
-        </ol>
-        <div class="welcome-actions">
-          <button class="primary-btn" id="welcomeGotoEmployees">Go to Employee Admin →</button>
-          <button class="ghost-btn" id="welcomeOpenSettings">⚙ Open Settings</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============== MODULES ============== -->
-
-    <!-- ===== MODULE A: APPLY ===== -->
-    <section class="module" id="mod-apply">
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;A · Employee</div>
-        <h1 class="head-title">Apply for <em>Leave</em></h1>
-        <p class="head-lead">Submit a leave request. Balance, policy, holidays, and overlaps are checked automatically.</p>
-      </div>
-
-      <div class="apply-grid">
-        <!-- Form -->
-        <div class="card form-card">
-          <div class="card-head">
-            <span class="card-tag">Form</span>
-            <h2 class="card-title">New Application</h2>
-          </div>
-
-          <div class="form-row">
-            <label>Employee ID</label>
-            <div class="combo">
-              <input type="text" id="f-empId" placeholder="e.g. EMP-1042" autocomplete="off" />
-              <button class="combo-btn" id="lookupBtn">Lookup</button>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label>Name</label>
-            <input type="text" id="f-name" placeholder="Auto-fills after lookup" />
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-row">
-              <label>Designation</label>
-              <input type="text" id="f-desig" placeholder="—" readonly />
-            </div>
-            <div class="form-row">
-              <label>Department</label>
-              <input type="text" id="f-dept" placeholder="—" readonly />
-            </div>
-          </div>
-
-          <div class="form-grid-3">
-            <div class="form-row">
-              <label>Section</label>
-              <input type="text" id="f-sec" placeholder="—" readonly />
-            </div>
-            <div class="form-row">
-              <label>Sub-Section</label>
-              <input type="text" id="f-subsec" placeholder="—" readonly />
-            </div>
-            <div class="form-row">
-              <label>Line / Unit</label>
-              <input type="text" id="f-line" placeholder="—" readonly />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label>Leave Type</label>
-            <div class="chips" id="leaveTypeChips">
-              <button class="chip" data-type="Casual">Casual</button>
-              <button class="chip" data-type="Sick">Sick</button>
-              <button class="chip" data-type="Annual">Annual</button>
-              <button class="chip" data-type="Maternity">Maternity</button>
-              <button class="chip" data-type="Others">Others</button>
-            </div>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-row">
-              <label>Start Date</label>
-              <input type="date" id="f-start" />
-            </div>
-            <div class="form-row">
-              <label>End Date</label>
-              <input type="date" id="f-end" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label>Reason / Note <span class="muted">(optional)</span></label>
-            <textarea id="f-reason" rows="2" placeholder="Briefly describe…"></textarea>
-          </div>
-
-          <div class="form-actions">
-            <button class="primary-btn" id="submitLeaveBtn">Submit Application</button>
-            <button class="ghost-btn" id="resetFormBtn">Clear</button>
-          </div>
-        </div>
-
-        <!-- Live Inspector -->
-        <div class="card inspector-card">
-          <div class="card-head">
-            <span class="card-tag tag-amber">Live Check</span>
-            <h2 class="card-title">Policy Inspector</h2>
-          </div>
-
-          <div class="inspector-stat">
-            <div class="stat-label">Working days requested</div>
-            <div class="stat-value" id="ins-days">—</div>
-            <div class="stat-meta" id="ins-daysMeta">Pick dates to compute</div>
-          </div>
-
-          <div class="balance-block">
-            <div class="balance-row">
-              <span class="bal-key">Casual <em>(cap 10)</em></span>
-              <div class="bal-bar"><div class="bal-fill" id="bar-cl"></div></div>
-              <span class="bal-val" id="val-cl">— / 10</span>
-            </div>
-            <div class="balance-row">
-              <span class="bal-key">Sick <em>(cap 14)</em></span>
-              <div class="bal-bar"><div class="bal-fill" id="bar-sl"></div></div>
-              <span class="bal-val" id="val-sl">— / 14</span>
-            </div>
-            <div class="balance-row">
-              <span class="bal-key">Annual <em>(cap 20)</em></span>
-              <div class="bal-bar"><div class="bal-fill" id="bar-al"></div></div>
-              <span class="bal-val" id="val-al">— / 20</span>
-            </div>
-            <div class="balance-row">
-              <span class="bal-key">Maternity <em>(cap 120)</em></span>
-              <div class="bal-bar"><div class="bal-fill" id="bar-ml"></div></div>
-              <span class="bal-val" id="val-ml">— / 120</span>
-            </div>
-          </div>
-
-          <div class="findings" id="findings">
-            <div class="finding-empty">Findings will appear as you fill the form.</div>
-          </div>
-
-          <div class="split-paid">
-            <div class="split-line">
-              <span class="split-key">Paid days</span>
-              <span class="split-val" id="paid-days">—</span>
-            </div>
-            <div class="split-line">
-              <span class="split-key">Unpaid days</span>
-              <span class="split-val" id="unpaid-days">—</span>
-            </div>
-            <div class="split-line">
-              <span class="split-key">Govt./Festival holidays in range</span>
-              <span class="split-val" id="holi-days">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== MODULE B: APPROVAL ===== -->
-    <section class="module" id="mod-approval" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;B · Department Head / Reporting Manager</div>
-        <h1 class="head-title">Approval <em>Queue</em></h1>
-        <p class="head-lead">Pending leave requests for your department. Approve or decline — the row clears after action.</p>
-      </div>
-
-      <div class="filters">
-        <div class="filter">
-          <label>Department</label>
-          <select id="approval-dept"><option value="">All</option></select>
-        </div>
-        <div class="filter">
-          <label>Search</label>
-          <input type="search" id="approval-search" placeholder="ID, name, designation…" />
-        </div>
-        <div class="filter-summary" id="approvalSummary"></div>
-      </div>
-
-      <div class="shortage-banner" id="shortageBanner" hidden>
-        <div class="sb-icon">⚠</div>
-        <div class="sb-text">
-          <strong>Critical manpower shortage detected.</strong>
-          <span id="sb-detail"></span>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>SL</th>
-              <th>ID</th>
-              <th>Name</th>
-              <th>DOJ</th>
-              <th>Service</th>
-              <th>Days</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Designation</th>
-              <th>Dept / Section / Sub / Line / Unit</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="approval-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ===== MODULE C: PAYROLL ===== -->
-    <section class="module" id="mod-payroll" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;C · Payroll</div>
-        <h1 class="head-title">Payroll <em>Entry</em></h1>
-        <p class="head-lead">Approved leaves awaiting entry in payroll software. Tick after entry — row clears, record retained.</p>
-      </div>
-
-      <div class="filters">
-        <div class="filter">
-          <label>Search</label>
-          <input type="search" id="payroll-search" placeholder="ID, name…" />
-        </div>
-        <div class="filter">
-          <label>Status</label>
-          <select id="payroll-type">
-            <option value="">All types</option>
-            <option>Casual</option>
-            <option>Sick</option>
-            <option>Annual</option>
-            <option>Maternity</option>
-            <option>Others</option>
-          </select>
-        </div>
-        <div class="filter export-group">
-          <button class="ghost-btn" id="payrollCsvBtn">⤓ CSV</button>
-          <button class="ghost-btn" id="payrollXlsxBtn">⤓ Excel</button>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>SL</th>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Leave Status</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Days (Paid / Unpaid)</th>
-              <th>Entry ✓</th>
-            </tr>
-          </thead>
-          <tbody id="payroll-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ===== MODULE D: WELFARE ===== -->
-    <section class="module" id="mod-welfare" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;D · Welfare & Counseling</div>
-        <h1 class="head-title">Counseling <em>Queue</em></h1>
-        <p class="head-lead">Declined leave applications routed for counseling. Tick when counseling is complete; the historical record is retained below.</p>
-      </div>
-
-      <div class="filters">
-        <div class="filter">
-          <label>Search</label>
-          <input type="search" id="welfare-search" placeholder="ID, name…" />
-        </div>
-        <div class="filter export-group">
-          <button class="ghost-btn" id="welfareCsvBtn">⤓ Historical CSV</button>
-          <button class="ghost-btn" id="welfareXlsxBtn">⤓ Historical Excel</button>
-        </div>
-      </div>
-
-      <h3 class="sub-head">Active counseling queue</h3>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>SL</th>
-              <th>ID</th>
-              <th>Name</th>
-              <th>DOJ</th>
-              <th>Dept / Section / Sub</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Reason Declined</th>
-              <th>Done ✓</th>
-            </tr>
-          </thead>
-          <tbody id="welfare-body"></tbody>
-        </table>
-      </div>
-
-      <h3 class="sub-head">Historical record</h3>
-      <div class="table-wrap">
-        <table class="data-table compact">
-          <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Dept</th><th>Start</th><th>End</th><th>Reason</th><th>Counseled On</th>
-            </tr>
-          </thead>
-          <tbody id="welfare-history-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ===== MODULE E: REPORTS ===== -->
-    <section class="module" id="mod-reports" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;E · Management & HR</div>
-        <h1 class="head-title">Leave <em>Intelligence</em></h1>
-        <p class="head-lead">Roll-ups by day, week, month, quarter and year. Spot which departments, designations and leave types drive volume.</p>
-      </div>
-
-      <div class="filters">
-        <div class="filter">
-          <label>Time Window</label>
-          <select id="reportWindow">
-            <option value="day">Today</option>
-            <option value="week">This Week</option>
-            <option value="month" selected>This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-          </select>
-        </div>
-        <div class="filter-summary" id="reportSummary"></div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-num" id="kpi-apps">0</div><div class="kpi-lab">Applications</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpi-days">0</div><div class="kpi-lab">Total Days</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpi-approved">0</div><div class="kpi-lab">Approval Rate</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpi-unpaid">0</div><div class="kpi-lab">Unpaid Days</div></div>
-      </div>
-
-      <div class="chart-grid">
-        <div class="card chart-card">
-          <div class="card-head"><span class="card-tag">By Department</span></div>
-          <canvas id="chart-dept"></canvas>
-        </div>
-        <div class="card chart-card">
-          <div class="card-head"><span class="card-tag">By Designation (Top 8)</span></div>
-          <canvas id="chart-desig"></canvas>
-        </div>
-        <div class="card chart-card">
-          <div class="card-head"><span class="card-tag">By Leave Type</span></div>
-          <canvas id="chart-type"></canvas>
-        </div>
-        <div class="card chart-card">
-          <div class="card-head"><span class="card-tag">Daily Trend</span></div>
-          <canvas id="chart-trend"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== MODULE F: FORECAST ===== -->
-    <section class="module" id="mod-forecast" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;F · Forecasting</div>
-        <h1 class="head-title">Leave <em>Foresight</em></h1>
-        <p class="head-lead">Forward-looking signals: absenteeism, seasonal spikes, Eid pressure and production risk.</p>
-      </div>
-
-      <div class="forecast-grid">
-        <div class="card forecast-card">
-          <div class="card-head"><span class="card-tag tag-amber">Next 30 Days</span><h2 class="card-title">Absenteeism Forecast</h2></div>
-          <canvas id="chart-absent"></canvas>
-          <div class="forecast-note" id="absent-note"></div>
-        </div>
-
-        <div class="card forecast-card">
-          <div class="card-head"><span class="card-tag">Seasonal Spikes</span><h2 class="card-title">Annual Pattern</h2></div>
-          <canvas id="chart-season"></canvas>
-        </div>
-
-        <div class="card forecast-card span-2">
-          <div class="card-head"><span class="card-tag tag-oxblood">Festival Pressure</span><h2 class="card-title">Eid / Pohela Boishakh Surge</h2></div>
-          <div id="festival-cards" class="festival-row"></div>
-        </div>
-
-        <div class="card forecast-card">
-          <div class="card-head"><span class="card-tag tag-amber">Production Risk</span><h2 class="card-title">Shortage Heat-map</h2></div>
-          <div class="heat-wrap" id="prodHeat"></div>
-        </div>
-
-        <div class="card forecast-card">
-          <div class="card-head"><span class="card-tag">By Department</span><h2 class="card-title">Projected Manpower Gap</h2></div>
-          <canvas id="chart-gap"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== MODULE G: MY FILE ===== -->
-    <section class="module" id="mod-myfile" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;G · Self-Service</div>
-        <h1 class="head-title">My Leave <em>File</em></h1>
-        <p class="head-lead">Enter your registered mobile number to open your personal leave file.</p>
-      </div>
-
-      <div class="card mobile-gate" id="mobileGate">
-        <label>Registered Mobile Number</label>
-        <div class="combo">
-          <input type="tel" id="mobile-input" placeholder="+8801XXXXXXXXX" />
-          <button class="primary-btn" id="openFileBtn">Open My File</button>
-        </div>
-        <div class="muted small">Or pick an Employee ID:&nbsp;
-          <select id="mobile-empPick"><option value="">— select —</option></select>
-        </div>
-      </div>
-
-      <div id="mobileFile" hidden>
-        <div class="card profile-card">
-          <div class="profile-id">
-            <div class="profile-photo" id="prof-mark"></div>
-            <div>
-              <div class="prof-name" id="prof-name"></div>
-              <div class="prof-meta" id="prof-meta"></div>
-            </div>
-            <button class="ghost-btn" id="closeFileBtn">Close</button>
-          </div>
-
-          <div class="bal-quad">
-            <div class="quad"><div class="q-lab">Casual Used</div><div class="q-val" id="q-cl"></div><div class="q-sub">of 10</div></div>
-            <div class="quad"><div class="q-lab">Sick Used</div><div class="q-val" id="q-sl"></div><div class="q-sub">of 14</div></div>
-            <div class="quad"><div class="q-lab">Annual Used</div><div class="q-val" id="q-al"></div><div class="q-sub">of 20</div></div>
-            <div class="quad"><div class="q-lab">Maternity Used</div><div class="q-val" id="q-ml"></div><div class="q-sub">of 120</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-head"><span class="card-tag">History</span><h2 class="card-title">All Leave Records</h2></div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Applied</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Paid / Unpaid</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="myfile-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== MODULE H: EMPLOYEE ADMIN ===== -->
-    <section class="module" id="mod-employees" hidden>
-      <div class="module-head">
-        <div class="head-eyebrow">Part&nbsp;H · Employee Admin</div>
-        <h1 class="head-title">Employee <em>Roster</em></h1>
-        <p class="head-lead">Add joiners, mark leavers, allocate leave balances, track required documents. The roster feeds every other module — Approval, Payroll, Welfare, Forecasting.</p>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="emp-kpis">
-        <div class="emp-kpi">
-          <span class="emp-kpi-label">Active employees</span>
-          <span class="emp-kpi-num" id="empKpiActive">—</span>
-        </div>
-        <div class="emp-kpi">
-          <span class="emp-kpi-label">Joined · 30 days</span>
-          <span class="emp-kpi-num" id="empKpiJoined">—</span>
-        </div>
-        <div class="emp-kpi">
-          <span class="emp-kpi-label">Terminated · 30 days</span>
-          <span class="emp-kpi-num" id="empKpiTerminated">—</span>
-        </div>
-        <div class="emp-kpi emp-kpi-alert">
-          <span class="emp-kpi-label">Pending docs</span>
-          <span class="emp-kpi-num" id="empKpiPendingDocs">—</span>
-          <span class="emp-kpi-meta" id="empKpiPendingMeta"></span>
-        </div>
-      </div>
-
-      <!-- Action bar -->
-      <div class="emp-actions">
-        <button class="primary-btn" id="empAddBtn">＋ Add Employee</button>
-        <button class="ghost-btn" id="empBulkBtn">⬆ Bulk Import</button>
-        <button class="ghost-btn" id="empTemplateBtn">⬇ Template (CSV)</button>
-        <button class="ghost-btn" id="empExportBtn">⬇ Export Roster (Excel)</button>
-        <div class="emp-actions-spacer"></div>
-        <input type="search" id="empSearch" class="emp-search" placeholder="Search ID / name / mobile / NID…" />
-        <select id="empStatusFilter" class="emp-filter">
-          <option value="Active">Active</option>
-          <option value="Terminated">Terminated</option>
-          <option value="">All status</option>
-        </select>
-        <select id="empDeptFilter" class="emp-filter">
-          <option value="">All departments</option>
-        </select>
-      </div>
-
-      <!-- Roster table -->
-      <div class="table-wrap">
-        <table class="data-table emp-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name · Mobile</th>
-              <th>Designation</th>
-              <th>Placement</th>
-              <th>DOJ · Service</th>
-              <th>Status</th>
-              <th>Docs</th>
-              <th>Allocation (CL/SL/AL)</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="emp-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-  </main>
+    <div class="gate-brand">ORSVAI</div>
+    <div class="gate-sub">Accountability Board</div>
+    <p class="gate-msg">Sign in to access the project development board.</p>
+    <div class="field"><input type="password" id="gatePw" placeholder="Access password" autocomplete="current-password" /></div>
+    <button class="btn btn-primary" id="gateBtn" style="width:100%;justify-content:center;margin-top:10px">Sign in</button>
+    <div class="gate-err" id="gateErr"></div>
+    <div style="margin-top:16px"><span class="gmark" style="font-size:24px"><i>g</i><i>u</i><i>u</i><i>l</i><i>b</i><i>a</i></span></div>
+    <div class="gate-foot">technology for better performance</div>
+  </div>
 </div>
 
-<!-- ============== TOAST ============== -->
-<div class="toast" id="toast" hidden><span id="toastMsg"></span></div>
-
-<!-- ============== EMPLOYEE ADD/EDIT DIALOG ============== -->
-<dialog id="empDialog" class="dialog dialog-wide">
-  <form method="dialog" class="dialog-form emp-dialog-form">
-    <div class="dialog-head">
-      <h3 id="empDialogTitle">Add Employee</h3>
-      <p class="dialog-sub" id="empDialogSub">All <em>starred</em> fields are required.</p>
-    </div>
-
-    <div class="emp-form-grid">
-      <fieldset class="emp-fieldset">
-        <legend>① Identity</legend>
-        <div class="emp-row">
-          <label>Employee ID *<input type="text" id="empF-id" placeholder="EMP-1081" required/></label>
-          <label>Full Name (English) *<input type="text" id="empF-name" required/></label>
-        </div>
-        <div class="emp-row">
-          <label>Mobile *<input type="tel" id="empF-mobile" placeholder="+8801XXXXXXXXX" required/></label>
-          <label>NID / Birth Cert.<input type="text" id="empF-nid"/></label>
-        </div>
-        <div class="emp-row">
-          <label>Date of Birth<input type="date" id="empF-dob"/></label>
-          <label>Gender
-            <select id="empF-gender">
-              <option value="">—</option>
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-              <option value="O">Other</option>
-            </select>
-          </label>
-          <label>DOJ *<input type="date" id="empF-doj" required/></label>
-        </div>
-      </fieldset>
-
-      <fieldset class="emp-fieldset">
-        <legend>② Placement</legend>
-        <div class="emp-row">
-          <label>Designation *<input type="text" id="empF-designation" list="empF-designation-list" required/>
-            <datalist id="empF-designation-list"></datalist>
-          </label>
-          <label>Department *<input type="text" id="empF-department" list="empF-department-list" required/>
-            <datalist id="empF-department-list"></datalist>
-          </label>
-        </div>
-        <div class="emp-row">
-          <label>Section<input type="text" id="empF-section"/></label>
-          <label>Sub-Section<input type="text" id="empF-subSection"/></label>
-        </div>
-        <div class="emp-row">
-          <label>Line<input type="text" id="empF-line" placeholder="L-01"/></label>
-          <label>Unit<input type="text" id="empF-unit" placeholder="Unit-1"/></label>
-        </div>
-        <div class="emp-row">
-          <label>Building<input type="text" id="empF-building" placeholder="Bldg-A"/></label>
-          <label>Floor<input type="text" id="empF-floor" placeholder="3rd Floor"/></label>
-        </div>
-      </fieldset>
-
-      <fieldset class="emp-fieldset">
-        <legend>③ Leave Allocation (this year)</legend>
-        <div class="alloc-toggle">
-          <label class="ck"><input type="radio" name="allocMode" id="allocAuto" value="auto" checked> Auto pro-rate from DOJ <span class="muted small" id="allocAutoHint">(uses Bangladesh Labour Act defaults)</span></label>
-          <label class="ck"><input type="radio" name="allocMode" id="allocCustom" value="custom"> Custom override</label>
-        </div>
-        <div class="emp-row alloc-row">
-          <label>Casual<input type="number" id="empF-allocCL" min="0" max="30" step="1"/></label>
-          <label>Sick<input type="number" id="empF-allocSL" min="0" max="30" step="1"/></label>
-          <label>Annual<input type="number" id="empF-allocAL" min="0" max="40" step="1"/></label>
-        </div>
-        <p class="muted small">Maternity is statutory (120 days, paid). It is granted on event, not allocated up front.</p>
-      </fieldset>
-
-      <fieldset class="emp-fieldset emp-docs-fieldset">
-        <legend>④ Required Documents Checklist</legend>
-        <div class="docs-grid">
-          <label class="ck"><input type="checkbox" data-doc="nid"> NID / Birth Cert copy</label>
-          <label class="ck"><input type="checkbox" data-doc="photo"> Passport-size photos</label>
-          <label class="ck"><input type="checkbox" data-doc="joiningLetter"> Joining letter</label>
-          <label class="ck"><input type="checkbox" data-doc="contract"> Appointment / Contract</label>
-          <label class="ck"><input type="checkbox" data-doc="bankAccount"> Bank account details</label>
-          <label class="ck"><input type="checkbox" data-doc="medical"> Medical fitness certificate</label>
-          <label class="ck"><input type="checkbox" data-doc="education"> Educational certificates</label>
-          <label class="ck"><input type="checkbox" data-doc="release"> Previous employer release</label>
-          <label class="ck"><input type="checkbox" data-doc="serviceBook"> Service book entry</label>
-          <label class="ck"><input type="checkbox" data-doc="emergency"> Emergency contact form</label>
-        </div>
-      </fieldset>
-    </div>
-
-    <div class="dialog-actions">
-      <button value="cancel" class="ghost-btn" type="button" id="empDialogCancel">Cancel</button>
-      <button value="save" class="primary-btn" id="empDialogSave">Save Employee</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ============== TERMINATE DIALOG ============== -->
-<dialog id="termDialog" class="dialog">
-  <form method="dialog" class="dialog-form">
-    <h3>Terminate / Separate Employee</h3>
-    <p class="muted small" id="termSubject"></p>
-    <label>Last Working Day *<input type="date" id="termF-date" required/></label>
-    <label>Separation Reason *
-      <select id="termF-reason" required>
-        <option value="">—</option>
-        <option>Resignation</option>
-        <option>Contract End</option>
-        <option>Termination (Misconduct)</option>
-        <option>Retirement</option>
-        <option>Retrenchment</option>
-        <option>Death</option>
-        <option>Absconding</option>
-      </select>
-    </label>
-    <label>Remarks<textarea id="termF-remarks" rows="2"></textarea></label>
-    <label class="ck"><input type="checkbox" id="termF-clearance"> Clearance & dues settled</label>
-    <div class="dialog-actions">
-      <button value="cancel" class="ghost-btn" type="button" id="termDialogCancel">Cancel</button>
-      <button value="confirm" class="primary-btn warn" id="termDialogConfirm">Confirm Separation</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ============== BULK IMPORT DIALOG ============== -->
-<dialog id="bulkDialog" class="dialog dialog-wide">
-  <form method="dialog" class="dialog-form">
-    <div class="dialog-head">
-      <h3>Bulk Import Employees</h3>
-      <p class="dialog-sub">Upload an Excel (.xlsx) or CSV file. Headers must match the template. Each row is validated before commit.</p>
-    </div>
-
-    <div class="bulk-step" id="bulkStep1">
-      <div class="bulk-drop" id="bulkDrop">
-        <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls" hidden/>
-        <div class="bulk-drop-inner">
-          <div class="bulk-drop-icon">⬆</div>
-          <div class="bulk-drop-text">Click or drop file here</div>
-          <div class="bulk-drop-hint">.xlsx, .xls, or .csv — first row is headers</div>
-        </div>
+<!-- ============ SHELL ============ -->
+<header class="shell">
+  <div class="shell-inner">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="logo"><span>ORSVAI</span></div>
+        <div class="brand-sub"><b>Excellence Accountability Framework</b><br>Right Person · Right Role · Right Time · Right Result</div>
       </div>
-      <p class="muted small">Need the format? <a href="#" id="bulkTemplateLink">Download the template</a> — Excel columns: ID, Name, Designation, Department, Section, SubSection, Line, Unit, DOJ, Mobile, NID, DOB, Gender, CL, SL, AL.</p>
-    </div>
-
-    <div class="bulk-step" id="bulkStep2" hidden>
-      <div class="bulk-summary" id="bulkSummary"></div>
-      <div class="table-wrap bulk-preview-wrap">
-        <table class="data-table bulk-preview">
-          <thead id="bulkPreviewHead"></thead>
-          <tbody id="bulkPreviewBody"></tbody>
-        </table>
+      <div class="brand-right">
+        <div class="powered"><span class="powered-by">powered by</span> <span class="gmark" style="font-size:21px"><i>g</i><i>u</i><i>u</i><i>l</i><i>b</i><i>a</i></span></div>
+        <div class="kpibar" id="shellKpis"></div>
       </div>
     </div>
+  </div>
+</header>
 
-    <div class="dialog-actions">
-      <button value="cancel" class="ghost-btn" type="button" id="bulkDialogCancel">Cancel</button>
-      <button value="back" class="ghost-btn" type="button" id="bulkBackBtn" hidden>← Choose different file</button>
-      <button value="commit" class="primary-btn" id="bulkCommitBtn" hidden disabled>Import Valid Rows</button>
+<!-- ============ ORSVAI RAIL (signature) ============ -->
+<div class="rail">
+  <div class="rail-track">
+    <div class="rail-node r-o"><div class="rail-badge">O</div><div class="rail-name">Owner</div><div class="rail-role">Sets direction & is ultimately responsible</div></div>
+    <div class="rail-node r-r"><div class="rail-badge">R</div><div class="rail-name">Responsible</div><div class="rail-role">Executes the task & delivers output</div></div>
+    <div class="rail-node r-s"><div class="rail-badge">S</div><div class="rail-name">Support</div><div class="rail-role">Provides tools, manpower & budget</div></div>
+    <div class="rail-node r-v"><div class="rail-badge">V</div><div class="rail-name">Verify</div><div class="rail-role">Audits, checks & confirms accuracy</div></div>
+    <div class="rail-node r-a"><div class="rail-badge">A</div><div class="rail-name">Approve</div><div class="rail-role">Reviews, decides & gives sign-off</div></div>
+    <div class="rail-node r-i"><div class="rail-badge">I</div><div class="rail-name">Inform</div><div class="rail-role">Receives updates & is kept informed</div></div>
+  </div>
+</div>
+
+<!-- ============ TABS ============ -->
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-view="entry"><span class="n">1</span> Task Entry</button>
+  <button class="tab" data-view="manage"><span class="n">2</span> Department Tasks</button>
+  <button class="tab" data-view="progress"><span class="n">3</span> Progress &amp; Risk</button>
+  <button class="tab" data-view="board"><span class="n">4</span> Board View</button>
+  <button class="tab" data-view="archive"><span class="n">5</span> Completed</button>
+</nav>
+
+<main>
+
+  <!-- ===== VIEW 1: TASK ENTRY ===== -->
+  <section class="view active" id="view-entry">
+    <div class="panel">
+      <div class="view-head">
+        <div class="eyebrow">Step 1 — Capture</div>
+        <h2>Project Development Task Entry</h2>
+        <p>Log a development task for a department and assign accountability across the six ORSVAI roles. No task is saved without an Owner — that is the first principle of the framework.</p>
+      </div>
+
+      <div class="update-banner" id="updateQueue" style="display:none">
+        <h4>↩ Sent back for update <span class="hint" style="font-weight:400;color:var(--muted)">— management requested changes</span></h4>
+        <div id="updateQueueList"></div>
+      </div>
+
+      <div class="edit-mode-bar" id="editBar">
+        <span>✎ Updating an existing task — make your changes and save.</span>
+        <button class="btn btn-ghost btn-sm" id="exitEdit" style="margin-left:auto;padding:5px 11px">Cancel update</button>
+      </div>
+
+      <div class="grid g2">
+        <div class="field">
+          <label>Department <span class="dot" style="background:var(--o)"></span></label>
+          <select id="f-dept"></select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="f-prio"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <label>Development task / issue</label>
+        <input id="f-title" placeholder="e.g. Implement digital line-balancing dashboard for Sewing floor" />
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <label>Description / scope <span class="hint">— what is being developed and why</span></label>
+        <textarea id="f-desc" placeholder="Describe the development objective, deliverable, and target outcome…"></textarea>
+      </div>
+
+      <div class="field" style="margin-top:18px">
+        <label>ORSVAI accountability assignment</label>
+        <div class="orsvai-assign">
+          <div class="oa-cell oa-o"><div class="tag"><span class="b">O</span> Owner</div><input id="f-O" placeholder="Owner" /></div>
+          <div class="oa-cell oa-r"><div class="tag"><span class="b">R</span> Responsible</div><input id="f-R" placeholder="Responsible" /></div>
+          <div class="oa-cell oa-s"><div class="tag"><span class="b">S</span> Support</div><input id="f-S" placeholder="Support" /></div>
+          <div class="oa-cell oa-v"><div class="tag"><span class="b">V</span> Verify</div><input id="f-V" placeholder="Verify" /></div>
+          <div class="oa-cell oa-a"><div class="tag"><span class="b">A</span> Approve</div><input id="f-A" placeholder="Approve" /></div>
+          <div class="oa-cell oa-i"><div class="tag"><span class="b">I</span> Inform</div><input id="f-I" placeholder="Inform" /></div>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:18px">
+        <div class="field">
+          <label>Start date</label>
+          <input type="date" id="f-start" />
+        </div>
+        <div class="field">
+          <label>Due date</label>
+          <input type="date" id="f-due" />
+        </div>
+        <div class="field">
+          <label>Duration <span class="hint">— auto</span></label>
+          <input id="f-dur" readonly placeholder="— days" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <label>Initial status</label>
+        <select id="f-status">
+          <option value="Not Started" selected>Not Started — 0%</option>
+          <option value="In Progress">In Progress — 75%</option>
+          <option value="Delayed">Delayed — 50%</option>
+          <option value="Completed">Completed — 100%</option>
+        </select>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn btn-primary" id="addTask">Add development task</button>
+        <button class="btn btn-ghost btn-sm" id="clearForm">Clear form</button>
+        <span class="hint" style="font-size:12px;color:var(--muted)">Submitted tasks await management approval in <b>Tab 2</b>.</span>
+      </div>
     </div>
-  </form>
-</dialog>
+  </section>
 
-<!-- ============== SETTINGS DIALOG ============== -->
-<dialog id="settingsDialog" class="dialog">
-  <form method="dialog" class="dialog-form">
-    <h3>Settings</h3>
-    <label>Google Apps Script Web App URL</label>
-    <input type="url" id="apiUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" />
-    <label class="ck"><input type="checkbox" id="useRemote"> Send writes to Google Sheets</label>
-    <p class="muted small">Leaving this blank uses local storage only. The Apps Script file is in <code>apps-script/Code.gs</code>.</p>
-    <div class="dialog-actions">
-      <button value="cancel" class="ghost-btn">Cancel</button>
-      <button value="save" class="primary-btn" id="saveSettings">Save</button>
+  <!-- ===== VIEW 2: DEPARTMENT TASKS / MANAGEMENT ===== -->
+  <section class="view" id="view-manage">
+    <div class="panel">
+      <div class="view-head">
+        <div class="eyebrow" style="color:var(--a)">Step 2 — Govern</div>
+        <h2>Department-wise Development Tasks</h2>
+        <p>Management review queue grouped by department, showing only open work. Approve a task to lock its accountability, update its delivery status, send it back for changes, or remove it. Once a task is completed it moves to the <b>Completed</b> tab.</p>
+      </div>
+      <div class="lock-note" id="manageLock">🔒 Management actions (Approve / Remove) are locked. <a href="#" id="unlockBtn" style="color:var(--v);font-weight:700;margin-left:4px">Unlock with key</a></div>
+      <div id="manageList"></div>
     </div>
-  </form>
-</dialog>
+  </section>
 
-<!-- ============== LIBS ============== -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=pilotA-2026-06-17"></script>
+  <!-- ===== VIEW 3: PROGRESS & RISK ===== -->
+  <section class="view" id="view-progress">
+    <div class="panel">
+      <div class="view-head">
+        <div class="eyebrow" style="color:var(--v)">Step 3 — Measure</div>
+        <h2>Project Progress &amp; Risk Analysis</h2>
+        <p>Department progress is scored on the ORSVAI scale — Completed 100%, In Progress 75%, Delayed 50%, Not Started 0% — and verification determines the actual score. The risk register flags what has not happened on time.</p>
+      </div>
+      <div class="kgrid" id="progKpis"></div>
+
+      <div class="focus-wrap" id="focusWrap">
+        <h3>⚡ Focus now <span class="hint" style="font-weight:400;color:var(--muted)">— tasks closest to their deadline</span></h3>
+        <div class="focus-strip" id="focusStrip"></div>
+      </div>
+
+      <div class="chartbox" style="margin-bottom:22px">
+        <div class="period-head">
+          <div>
+            <h3>Progress trend</h3>
+            <div class="sub">Portfolio completion over time — verified ORSVAI score</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="periodDelta"></span>
+            <div class="seg-toggle" id="periodToggle">
+              <button data-p="weekly" class="on">Weekly</button>
+              <button data-p="monthly">Monthly</button>
+              <button data-p="quarterly">Quarterly</button>
+              <button data-p="yearly">Yearly</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="trendChart"></canvas></div>
+      </div>
+
+      <div class="grid g2" style="align-items:start;gap:22px">
+        <div>
+          <h3 style="font-size:14px;color:var(--ink);margin-bottom:14px;font-family:'Sora'">Department progress</h3>
+          <div id="deptProgress"></div>
+        </div>
+        <div>
+          <h3 style="font-size:14px;color:var(--ink);margin-bottom:14px;font-family:'Sora'">Risk register <span style="font-size:11px;color:var(--muted);font-weight:400">— what hasn't happened</span></h3>
+          <div class="chartbox" style="padding:6px 18px"><div id="riskList"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 4: BOARD VIEW ===== -->
+  <section class="view" id="view-board">
+    <div class="panel">
+      <div class="view-head">
+        <div class="eyebrow" style="color:var(--i)">Step 4 — Decide</div>
+        <h2>Birds-eye Board View</h2>
+        <p>One framework, one accountability. A single executive overview of project development across all departments for the management board meeting.</p>
+      </div>
+      <div class="kgrid" id="boardKpis"></div>
+
+      <div class="eng-grid" id="engKpis"></div>
+
+      <div class="board-grid" style="margin-bottom:18px">
+        <div class="chartbox">
+          <h3>Development completion by department</h3>
+          <div class="sub">ORSVAI verified score, weighted by task count</div>
+          <div class="chart-wrap"><canvas id="deptChart"></canvas></div>
+        </div>
+        <div class="chartbox">
+          <h3>🏆 Department leaderboard</h3>
+          <div class="sub">Accountability points — completion, approvals & on-time delivery</div>
+          <div id="leaderboard"></div>
+        </div>
+      </div>
+      <div class="board-grid" style="margin-bottom:18px">
+        <div class="chartbox">
+          <h3>Portfolio status mix</h3>
+          <div class="sub">All active development tasks, all departments</div>
+          <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+        </div>
+        <div class="chartbox">
+          <h3>Milestone badges</h3>
+          <div class="sub">Engagement milestones unlocked across the portfolio</div>
+          <div class="badges" id="badgeRow" style="margin-top:14px"></div>
+        </div>
+      </div>
+      <div class="chartbox">
+        <h3>Board scorecard</h3>
+        <div class="sub">Department accountability, progress and verdict at a glance</div>
+        <table class="score-table" id="scoreTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VIEW 5: ARCHIVE ===== -->
+  <section class="view" id="view-archive">
+    <div class="panel">
+      <div class="view-head">
+        <div class="eyebrow" style="color:var(--muted)">Records — Delivered</div>
+        <h2>Completed Projects</h2>
+        <p>Completed development tasks move here, newest first. They wait for management verification, sit in the recent list once signed off, and auto-archive one year after completion — keeping the active board clean while preserving the full ORSVAI record.</p>
+      </div>
+      <div class="lock-note" id="archiveLock">🔒 Verification &amp; archive actions are locked. <a href="#" id="unlockBtn2" style="color:var(--v);font-weight:700;margin-left:4px">Unlock with key</a></div>
+      <div class="kgrid" id="archiveKpis"></div>
+      <div id="archiveList"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer><span class="gmark" style="font-size:15px"><i>g</i><i>u</i><i>u</i><i>l</i><i>b</i><i>a</i></span> &nbsp;(<a href="https://www.guulba.com" target="_blank" rel="noopener">www.guulba.com</a>)&nbsp; — <span>technology for better performance</span></footer>
+
+<!-- ===== Unlock modal ===== -->
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <h3>Management access</h3>
+    <p>Enter the management key to approve or remove department tasks.</p>
+    <div class="field"><input type="password" id="pwInput" placeholder="Management key" autocomplete="off" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="pwCancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="pwSubmit">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ORSVAI Project Development Accountability Board
+   Stack: GitHub Pages (HTML/CSS/JS + Chart.js)
+          + Google Apps Script / Sheets backend
+          + Python analytics via GitHub Actions
+   ============================================================ */
+
+const CONFIG = {
+  /* Paste your Apps Script Web App URL here to enable live sync.
+     Leave empty ("") to run standalone on this device. */
+  SCRIPT_URL: "",
+  /* Two-tier access — both are SHA-256 hashes (never store the raw password).
+     Generate a new hash in the browser console:  await sha256("yourkey")
+     SITE_HASH    → tier 1: required to enter the site & view every tab.
+                    Default key = "orsvai2026"
+     MGMT_HASH    → tier 2: required for management actions in Tab 2 (approve /
+                    status / send-back / remove) and Tab 5 (verify / reopen /
+                    restore).  Default key = "orsvai-board" */
+  SITE_HASH: "3b370bf39e9e54e2c5f1ef5b533908b72ccc3b1846ea9768fd80b9fbd5fb2f31",
+  MGMT_HASH: "22ace2598449d48a1400377ee95cc862800261ced4fb5d5246e1ea66a59d24d0"
+};
+
+/* GNF-oriented department set — edit freely */
+const DEPARTMENTS = [
+  "Strategic HRM","Production / Sewing","Knitting & Dyeing","Quality Assurance",
+  "Maintenance & EHS","Planning & PPC","Merchandising","Supply Chain & Store",
+  "Finance & Accounts","IT & Systems","Compliance","R&D / Product Development"
+];
+
+const STATUS = {
+  "Completed":{score:100,cls:"st-done",seg:"seg-done",color:"#16A34A"},
+  "In Progress":{score:75,cls:"st-prog",seg:"seg-prog",color:"#2563EB"},
+  "Delayed":{score:50,cls:"st-delay",seg:"seg-delay",color:"#F59E0B"},
+  "Not Started":{score:0,cls:"st-notstart",seg:"seg-notstart",color:"#EF4444"}
+};
+const ROLES = [["O","Owner"],["R","Responsible"],["S","Support"],["V","Verify"],["A","Approve"],["I","Inform"]];
+
+/* ---------- crypto ---------- */
+async function sha256(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ---------- storage layer (Apps Script → localStorage → memory) ---------- */
+let MEM = null;                 // in-memory fallback store
+const LS_KEY = "orsvai_tasks_v1";
+function lsGet(){ try{ const r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):null; }catch(e){ return undefined; } }
+function lsSet(v){ try{ localStorage.setItem(LS_KEY, JSON.stringify(v)); return true; }catch(e){ return false; } }
+
+const Store = {
+  async load(){
+    if(CONFIG.SCRIPT_URL){
+      try{
+        const r = await fetch(CONFIG.SCRIPT_URL + "?action=list");
+        const j = await r.json();
+        if(j && Array.isArray(j.tasks)) return j.tasks;
+      }catch(e){ toast("Live sync unavailable — using local data"); }
+    }
+    const ls = lsGet();
+    if(ls && ls.length) return ls;
+    if(MEM) return MEM;
+    MEM = seed();           // first run → seed sample data
+    persistLocal(MEM);
+    return MEM;
+  },
+  async save(task){         // create
+    if(CONFIG.SCRIPT_URL){
+      try{ await fetch(CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"add",task})}); }catch(e){}
+    }
+  },
+  async update(id, patch){
+    if(CONFIG.SCRIPT_URL){
+      try{ await fetch(CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"update",id,patch})}); }catch(e){}
+    }
+  },
+  async remove(id){
+    if(CONFIG.SCRIPT_URL){
+      try{ await fetch(CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"remove",id})}); }catch(e){}
+    }
+  }
+};
+function persistLocal(arr){ MEM = arr; if(!lsSet(arr)) MEM = arr; }
+
+/* ---------- app state ---------- */
+let TASKS = [];
+let mgmtUnlocked = false;
+
+function uid(){ return "T-"+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function daysBetween(a,b){ if(!a||!b) return null; const d=(new Date(b)-new Date(a))/86400000; return Math.round(d); }
+function fmt(d){ if(!d) return "—"; return new Date(d).toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------- seed (sample board data) ---------- */
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function seed(){
+  // Trial deployment — start empty. Tasks are created live in Tab 1.
+  return [];
+}
+
+/* ============================================================
+   SCORING & RISK ENGINE
+   ============================================================ */
+function taskScore(t){
+  let base = STATUS[t.status].score;
+  if(!t.approved && base>0) base = Math.round(base*0.85);   // unverified discount
+  return base;
+}
+function deptStats(){
+  const map = {};
+  DEPARTMENTS.forEach(d=>map[d]={dept:d,count:0,sum:0,done:0,prog:0,delay:0,notstart:0});
+  active().forEach(t=>{
+    if(!map[t.dept]) map[t.dept]={dept:t.dept,count:0,sum:0,done:0,prog:0,delay:0,notstart:0};
+    const m=map[t.dept]; m.count++; m.sum+=taskScore(t);
+    if(t.status==="Completed")m.done++; else if(t.status==="In Progress")m.prog++;
+    else if(t.status==="Delayed")m.delay++; else m.notstart++;
+  });
+  return Object.values(map).filter(m=>m.count>0).map(m=>({...m, pct:Math.round(m.sum/m.count)}));
+}
+function overdue(t){ return t.due && t.status!=="Completed" && new Date(t.due) < new Date(todayISO()); }
+
+function riskRegister(){
+  const risks = [];
+  active().forEach(t=>{
+    if(overdue(t)) risks.push({sev:"high",tag:"Overdue",title:`${t.title} — ${t.dept}`,
+      desc:`Due ${fmt(t.due)} and still ${t.status}. Owner ${t.O||"unassigned"} is accountable for recovery.`});
+    if(t.status==="Delayed") risks.push({sev:"high",tag:"Delayed",title:`${t.title} — ${t.dept}`,
+      desc:`Flagged as delayed (50% score). Verify (${t.V||"unassigned"}) to confirm cause and revised date.`});
+    if(!t.O) risks.push({sev:"high",tag:"No Owner",title:`${t.title} — ${t.dept}`,
+      desc:"Violates the first principle: no task without an Owner. Assign accountability before proceeding."});
+    if(t.status==="Completed" && !t.approved) risks.push({sev:"med",tag:"Unverified",title:`${t.title} — ${t.dept}`,
+      desc:`Reported complete but not approved. Verification determines the actual score — Approve (${t.A||"unassigned"}) must sign off.`});
+    if(t.status==="Not Started" && t.start && new Date(t.start) < new Date(todayISO()) && t.approved) risks.push({sev:"med",tag:"Not Started",title:`${t.title} — ${t.dept}`,
+      desc:`Approved and past its start date (${fmt(t.start)}) with no progress. Responsible (${t.R||"unassigned"}) to begin.`});
+  });
+  const order={high:0,med:1,low:2};
+  return risks.sort((a,b)=>order[a.sev]-order[b.sev]);
+}
+
+/* ============================================================
+   PERIODIC PROGRESS · URGENCY · ENGAGEMENT · ARCHIVE
+   ============================================================ */
+function active(){ return TASKS.filter(t=>!t.archived); }
+
+/* --- snapshot store (weekly/monthly/quarterly/yearly trend) --- */
+const SNAP_KEY="orsvai_snaps_v1";
+let SNAPS=null;
+function loadSnaps(){
+  if(SNAPS) return SNAPS;
+  try{ const r=localStorage.getItem(SNAP_KEY); if(r){ SNAPS=JSON.parse(r); return SNAPS; } }catch(e){}
+  SNAPS=seedSnaps(); saveSnaps(); return SNAPS;
+}
+function saveSnaps(){ try{ localStorage.setItem(SNAP_KEY,JSON.stringify(SNAPS)); }catch(e){} }
+function seedSnaps(){
+  // Trial deployment — no synthetic history. The trend builds from real
+  // daily snapshots once tasks exist (see recordSnapshot).
+  return {};
+}
+function recordSnapshot(){
+  const act=active(); if(!act.length) return;
+  const pct=Math.round(act.reduce((s,t)=>s+taskScore(t),0)/act.length);
+  loadSnaps()[todayISO()]=pct; saveSnaps();
+}
+function periodKey(dateStr,gran){
+  const d=new Date(dateStr);
+  const y=d.getFullYear();
+  if(gran==="yearly") return ""+y;
+  if(gran==="quarterly") return y+" Q"+(Math.floor(d.getMonth()/3)+1);
+  if(gran==="monthly") return d.toLocaleString(undefined,{month:"short"})+" "+String(y).slice(2);
+  // weekly → ISO-ish week label
+  const onejan=new Date(y,0,1); const wk=Math.ceil(((d-onejan)/86400000 + onejan.getDay()+1)/7);
+  return "W"+wk+" '"+String(y).slice(2);
+}
+function periodSeries(gran){
+  const snaps=loadSnaps();
+  const buckets={};
+  Object.keys(snaps).sort().forEach(date=>{
+    buckets[periodKey(date,gran)]=snaps[date];  // last value in the period wins
+  });
+  let entries=Object.entries(buckets);
+  const cap={weekly:12,monthly:12,quarterly:8,yearly:5}[gran]||12;
+  entries=entries.slice(-cap);
+  return {labels:entries.map(e=>e[0]), values:entries.map(e=>e[1])};
+}
+
+/* --- near-deadline urgency --- */
+function dueUrgency(t){
+  if(t.status==="Completed") return {level:"normal",days:null};
+  const days=daysBetween(todayISO(),t.due);
+  if(days===null) return {level:"normal",days:null};
+  if(days<0) return {level:"overdue",days};
+  if(days<=3) return {level:"urgent",days};
+  if(days<=7) return {level:"soon",days};
+  return {level:"normal",days};
+}
+function nextAction(t){
+  if(t.status==="Not Started") return ["Responsible", t.R];
+  if(t.status==="Delayed") return ["Verify", t.V];
+  if(t.status==="In Progress") return ["Owner", t.O];
+  return ["Approve", t.A];
+}
+
+/* --- engagement / points --- */
+function deptPoints(){
+  const map={};
+  active().forEach(t=>{
+    const m=map[t.dept]=map[t.dept]||{dept:t.dept,pts:0,done:0,tasks:0};
+    m.tasks++;
+    if(t.approved) m.pts+=10;
+    if(t.status==="Completed"){ m.pts+=25; m.done++;
+      if(t.due && t.completedDate && new Date(t.completedDate)<=new Date(t.due)) m.pts+=15; } // on-time bonus
+    if(t.status==="In Progress") m.pts+=5;
+  });
+  return Object.values(map).sort((a,b)=>b.pts-a.pts);
+}
+function totalPoints(){ return deptPoints().reduce((s,d)=>s+d.pts,0); }
+function completionStreak(){
+  // consecutive recent snapshots that did not drop
+  const snaps=loadSnaps(); const dates=Object.keys(snaps).sort();
+  let streak=0;
+  for(let i=dates.length-1;i>0;i--){ if(snaps[dates[i]]>=snaps[dates[i-1]]) streak++; else break; }
+  return streak;
+}
+const BADGES=[
+  {id:"first",icon:"🎯",label:"First delivery",test:s=>s.completed>=1},
+  {id:"five",icon:"⭐",label:"5 delivered",test:s=>s.completed>=5},
+  {id:"verified",icon:"✓",label:"All verified",test:s=>s.tasks>0 && s.approved===s.tasks},
+  {id:"halfway",icon:"📈",label:"50% portfolio",test:s=>s.pct>=50},
+  {id:"excellence",icon:"🏆",label:"80% excellence",test:s=>s.pct>=80},
+  {id:"momentum",icon:"🔥",label:"Rising momentum",test:s=>s.streak>=3},
+];
+function fireConfetti(){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const cols=["#2563EB","#16A34A","#EA580C","#7C3AED","#0D9488","#F59E0B"];
+  for(let i=0;i<70;i++){
+    const p=document.createElement("div"); p.className="confetti-pc";
+    p.style.left=Math.random()*100+"vw"; p.style.background=cols[i%cols.length];
+    p.style.transform=`rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(p);
+    const dur=2200+Math.random()*1400;
+    p.animate([{transform:`translateY(0) rotate(0)`,opacity:1},{transform:`translateY(105vh) rotate(${Math.random()*720}deg)`,opacity:.9}],{duration:dur,easing:"cubic-bezier(.2,.6,.4,1)"}).onfinish=()=>p.remove();
+  }
+}
+
+/* --- auto-archive completed > 1 year --- */
+function autoArchive(){
+  let changed=false;
+  TASKS.forEach(t=>{
+    if(!t.archived && t.status==="Completed" && t.completedDate){
+      if(daysBetween(t.completedDate,todayISO()) >= 365){ t.archived=true; changed=true; }
+    }
+  });
+  if(changed) persistLocal(TASKS);
+}
+
+
+function badge(letter){ const m={O:"o",R:"r",S:"s",V:"v",A:"a",I:"i"}; return m[letter]; }
+
+function renderShellKpis(){
+  const A=active();
+  const total=A.length, done=A.filter(t=>t.status==="Completed").length;
+  const risks=riskRegister().filter(r=>r.sev==="high").length;
+  const overall=total? Math.round(A.reduce((s,t)=>s+taskScore(t),0)/total):0;
+  document.getElementById("shellKpis").innerHTML=[
+    ["Tasks",total],["Completion",overall+"%"],["Completed",done],["High risks",risks]
+  ].map(([l,v])=>`<div class="kpi-chip"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function renderEntryDept(){
+  document.getElementById("f-dept").innerHTML = DEPARTMENTS.map(d=>`<option>${d}</option>`).join("");
+}
+
+function statusPill(s){ return `<span class="status-pill ${STATUS[s].cls}">${s}</span>`; }
+function prioChip(p){ const c={High:"prio-high",Medium:"prio-med",Low:"prio-low"}[p]; return `<span class="chip ${c}">${p} priority</span>`; }
+
+function matrixStrip(t){
+  return `<div class="matrix-strip">${ROLES.map(([k,name])=>{
+    const who=t[k]; const cls="c-"+badge(k);
+    return `<div class="ms-cell ${cls}"><div class="lbl"><span style="width:14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;background:var(--${badge(k)});color:#fff;font-size:8px;font-weight:800">${k}</span>${name}</div><div class="who ${who?'':'empty'}">${who||"unassigned"}</div></div>`;
+  }).join("")}</div>`;
+}
+
+function renderManage(){
+  const wrap=document.getElementById("manageList");
+  document.getElementById("manageLock").style.display = mgmtUnlocked? "none":"flex";
+  const A=active().filter(t=>t.status!=="Completed");
+  if(!A.length){ wrap.innerHTML=`<div class="empty"><div class="ico">📋</div>No open tasks in the review queue. Completed work is in the <b>Completed</b> tab; add new tasks in Tab 1.</div>`; return; }
+  const byDept={};
+  A.forEach(t=>{(byDept[t.dept]=byDept[t.dept]||[]).push(t);});
+  // near-deadline tasks float to the top of each department
+  const urgRank={overdue:0,urgent:1,soon:2,normal:3};
+  wrap.innerHTML = Object.keys(byDept).sort().map(dept=>{
+    const items=byDept[dept].sort((a,b)=>urgRank[dueUrgency(a).level]-urgRank[dueUrgency(b).level]);
+    return `<div class="deptblock"><h3><span class="dot" style="background:var(--o)"></span>${dept}<span class="count">${items.length}</span><span class="bar"></span></h3>
+      ${items.map(t=>{
+        const u=dueUrgency(t); const [role,who]=nextAction(t);
+        let urgFlag="";
+        if(u.level==="overdue") urgFlag=`<span class="urg-flag urg-overdue"><span class="pd"></span>${Math.abs(u.days)}d overdue</span>`;
+        else if(u.level==="urgent") urgFlag=`<span class="urg-flag urg-urgent"><span class="pd"></span>due in ${u.days}d</span>`;
+        else if(u.level==="soon") urgFlag=`<span class="urg-flag urg-soon">due in ${u.days}d</span>`;
+        const tip = u.level!=="normal" ? `<div class="due-tip"><div class="cd">${u.level==="overdue"?Math.abs(u.days)+" days":u.days+" days"}<small>${u.level==="overdue"?" overdue":" to deadline"}</small></div><div class="nx">Next move sits with <b>${role}: ${who||"unassigned"}</b>. Due ${fmt(t.due)}.</div></div>`:"";
+        return `
+        <div class="tcard" data-urg="${u.level}">
+          ${tip}
+          <div class="tcard-top">
+            <div class="title"><h4>${t.title}</h4><p>${t.desc||""}</p>
+              <div class="meta">${prioChip(t.prio)} ${urgFlag} ${t.needsUpdate?'<span class="chip needs-update">↩ needs update</span>':''} ${t.approved?'<span class="chip approved-flag">✓ approved</span>':'<span class="chip">pending approval</span>'}</div>
+            </div>
+            <div>${statusPill(t.status)}</div>
+          </div>
+          ${t.feedback?`<div class="fb-note"><b>Feedback:</b> ${t.feedback}</div>`:""}
+          ${matrixStrip(t)}
+          <div class="tcard-foot">
+            <div class="dates"><span>Start <b>${fmt(t.start)}</b></span><span>Due <b>${fmt(t.due)}</b></span><span>Duration <b>${daysBetween(t.start,t.due)??"—"} days</b></span></div>
+            <div class="foot-actions">
+              <select class="btn-sm" style="width:auto;padding:7px 10px" data-status="${t.id}" ${mgmtUnlocked?'':'disabled'}>
+                ${Object.keys(STATUS).map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join("")}
+              </select>
+              <button class="btn btn-ghost btn-sm" data-feedback="${t.id}" ${mgmtUnlocked?'':'disabled'}>↩ Request update</button>
+              <button class="btn btn-ok btn-sm" data-approve="${t.id}" ${(mgmtUnlocked&&!t.approved)?'':'disabled'}>${t.approved?'Approved':'Approve'}</button>
+              <button class="btn btn-danger btn-sm" data-remove="${t.id}" ${mgmtUnlocked?'':'disabled'}>Remove</button>
+            </div>
+          </div>
+        </div>`;}).join("")}
+    </div>`;
+  }).join("");
+}
+
+function renderUpdateQueue(){
+  const q=active().filter(t=>t.needsUpdate);
+  const banner=document.getElementById("updateQueue");
+  if(!q.length){ banner.style.display="none"; return; }
+  banner.style.display="block";
+  document.getElementById("updateQueueList").innerHTML=q.map(t=>`
+    <div class="uq-item">
+      <div class="uq-t">${t.title} <span class="uq-fb">— ${t.dept}${t.feedback?' · "'+t.feedback+'"':''}</span></div>
+      <button class="btn btn-primary btn-sm" data-edit="${t.id}">Update now</button>
+    </div>`).join("");
+}
+
+let curPeriod="weekly";
+function renderProgress(){
+  const A=active();
+  const stats=deptStats();
+  const total=A.length;
+  const done=A.filter(t=>t.status==="Completed").length;
+  const delayed=A.filter(t=>t.status==="Delayed").length;
+  const risks=riskRegister();
+  document.getElementById("progKpis").innerHTML=[
+    ["k-done",done,"Completed tasks"],
+    ["k-prog",A.filter(t=>t.status==="In Progress").length,"In progress"],
+    ["k-delay",delayed,"Delayed"],
+    ["k-risk",risks.filter(r=>r.sev==="high").length,"High-severity risks"]
+  ].map(([c,n,cap])=>`<div class="kcard ${c}"><div class="num">${n}</div><div class="cap">${cap}</div></div>`).join("");
+
+  renderFocus();
+  renderTrend();
+
+  document.getElementById("deptProgress").innerHTML = stats.sort((a,b)=>b.pct-a.pct).map(s=>{
+    const seg=(n,cls)=> n? `<span class="${cls}" style="width:${n/s.count*100}%"></span>`:"";
+    const col = s.pct>=80?"#16A34A":s.pct>=50?"#F59E0B":"#EF4444";
+    return `<div class="deptprog">
+      <div class="deptprog-head"><span class="name">${s.dept}</span><span class="pct" style="color:${col}">${s.pct}%</span></div>
+      <div class="track">${seg(s.done,"seg-done")}${seg(s.prog,"seg-prog")}${seg(s.delay,"seg-delay")}${seg(s.notstart,"seg-notstart")}</div>
+      <div class="track-legend">
+        <span><span class="dot" style="background:var(--done)"></span>${s.done} done</span>
+        <span><span class="dot" style="background:var(--prog)"></span>${s.prog} in progress</span>
+        <span><span class="dot" style="background:var(--delay)"></span>${s.delay} delayed</span>
+        <span><span class="dot" style="background:var(--notstart)"></span>${s.notstart} not started</span>
+      </div></div>`;
+  }).join("") || `<div class="empty">No department data yet.</div>`;
+
+  const rl=document.getElementById("riskList");
+  rl.innerHTML = risks.length? risks.map(r=>`
+    <div class="risk-item"><div class="risk-sev sev-${r.sev}"></div>
+      <div class="risk-body"><div class="rt">${r.title}</div><div class="rd">${r.desc}</div></div>
+      <span class="risk-tag rtag-${r.sev}">${r.tag}</span></div>`).join("")
+    : `<div class="empty" style="padding:30px"><div class="ico">✓</div>No active risks. Every task is on track and verified.</div>`;
+}
+
+function renderFocus(){
+  const wrap=document.getElementById("focusWrap");
+  const near=active().map(t=>({t,u:dueUrgency(t)}))
+    .filter(x=>x.u.level!=="normal")
+    .sort((a,b)=>(a.u.days)-(b.u.days));
+  if(!near.length){ wrap.style.display="none"; return; }
+  wrap.style.display="block";
+  document.getElementById("focusStrip").innerHTML=near.slice(0,8).map(({t,u})=>{
+    const cls=u.level==="overdue"?"fc-overdue":u.level==="urgent"?"fc-urgent":"";
+    const cd=u.level==="overdue"?`${Math.abs(u.days)}d overdue`:`${u.days}d to deadline`;
+    const [role,who]=nextAction(t);
+    return `<div class="focus-card ${cls}">
+      <div class="fc-cd ${u.level==="overdue"?'late':''}">${cd}</div>
+      <div class="fc-t">${t.title}</div>
+      <div class="fc-d">${t.dept} · due ${fmt(t.due)}</div>
+      <div class="fc-o">▸ ${role}: ${who||"unassigned"}</div>
+    </div>`;
+  }).join("");
+}
+
+let trendChart=null;
+function renderTrend(){
+  const {labels,values}=periodSeries(curPeriod);
+  // delta vs previous period
+  const dch=document.getElementById("periodDelta");
+  if(values.length>=2){
+    const d=values[values.length-1]-values[values.length-2];
+    const cls=d>0?"delta-up":d<0?"delta-down":"delta-flat";
+    const arrow=d>0?"▲":d<0?"▼":"—";
+    dch.innerHTML=`<span class="delta-chip ${cls}">${arrow} ${d>0?'+':''}${d} pts vs last ${curPeriod.replace('ly','')}</span>`;
+  } else dch.innerHTML=`<span class="delta-chip delta-flat">Trend builds as tasks are tracked</span>`;
+  if(trendChart) trendChart.destroy();
+  const ctx=document.getElementById("trendChart");
+  const grad=ctx.getContext("2d").createLinearGradient(0,0,0,200);
+  grad.addColorStop(0,"rgba(37,99,235,.22)"); grad.addColorStop(1,"rgba(37,99,235,0)");
+  trendChart=new Chart(ctx,{
+    type:"line",
+    data:{labels,datasets:[{data:values,borderColor:"#2563EB",backgroundColor:grad,fill:true,
+      tension:.35,borderWidth:2.5,pointRadius:3,pointBackgroundColor:"#2563EB",pointHoverRadius:5}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+"% completion"}}},
+      scales:{y:{min:0,max:100,grid:{color:"#EDF0F5"},ticks:{callback:v=>v+"%",font:{size:10}}},
+              x:{grid:{display:false},ticks:{font:{size:10}}}},
+      responsive:true,maintainAspectRatio:false}
+  });
+}
+
+let charts={};
+function renderBoard(){
+  const A=active();
+  const stats=deptStats();
+  const total=A.length;
+  const overall=total? Math.round(A.reduce((s,t)=>s+taskScore(t),0)/total):0;
+  const approved=A.filter(t=>t.approved).length;
+  const depts=stats.length;
+  document.getElementById("boardKpis").innerHTML=[
+    ["k-done",overall+"%","Portfolio completion"],
+    ["k-prog",depts,"Active departments"],
+    ["k-delay",approved+"/"+total,"Approved & verified"],
+    ["k-risk",riskRegister().filter(r=>r.sev==="high").length,"Board-level risks"]
+  ].map(([c,n,cap])=>`<div class="kcard ${c}"><div class="num">${n}</div><div class="cap">${cap}</div></div>`).join("");
+
+  // engagement KPIs
+  const completed=A.filter(t=>t.status==="Completed").length;
+  document.getElementById("engKpis").innerHTML=[
+    ["🏅",totalPoints(),"Accountability points"],
+    ["✅",completed,"Tasks delivered"],
+    ["🔥",completionStreak(),"Progress streak"],
+    ["📦",TASKS.filter(t=>t.archived).length,"Archived (1yr+)"]
+  ].map(([ico,n,cap])=>`<div class="eng-card"><div class="ico">${ico}</div><div class="num">${n}</div><div class="cap">${cap}</div></div>`).join("");
+
+  // leaderboard
+  const lb=deptPoints().slice(0,6);
+  const medal=["gold","silver","bronze"];
+  document.getElementById("leaderboard").innerHTML = lb.length? lb.map((d,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank ${medal[i]||''}">${i+1}</div>
+      <div class="lb-name">${d.dept}<small>${d.done}/${d.tasks} delivered</small></div>
+      <div class="lb-pts">${d.pts}<small> pts</small></div>
+    </div>`).join("") : `<div class="empty">No points yet.</div>`;
+
+  // badges
+  const s={completed,tasks:total,approved,pct:overall,streak:completionStreak()};
+  document.getElementById("badgeRow").innerHTML=BADGES.map(b=>{
+    const got=b.test(s);
+    return `<span class="badge ${got?'earned':''}">${b.icon} ${b.label}${got?'':' · locked'}</span>`;
+  }).join("");
+
+  // dept bar
+  const ds=stats.sort((a,b)=>b.pct-a.pct);
+  if(charts.dept) charts.dept.destroy();
+  charts.dept=new Chart(document.getElementById("deptChart"),{
+    type:"bar",
+    data:{labels:ds.map(s=>s.dept),datasets:[{data:ds.map(s=>s.pct),
+      backgroundColor:ds.map(s=>s.pct>=80?"#16A34A":s.pct>=50?"#F59E0B":"#EF4444"),borderRadius:6,barThickness:16}]},
+    options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+"% verified"}}},
+      scales:{x:{max:100,grid:{color:"#EDF0F5"},ticks:{callback:v=>v+"%",font:{size:10}}},
+              y:{grid:{display:false},ticks:{font:{size:10.5}}}},
+      responsive:true,maintainAspectRatio:false}
+  });
+
+  // status doughnut
+  const counts={Completed:0,"In Progress":0,Delayed:0,"Not Started":0};
+  A.forEach(t=>counts[t.status]++);
+  if(charts.status) charts.status.destroy();
+  charts.status=new Chart(document.getElementById("statusChart"),{
+    type:"doughnut",
+    data:{labels:Object.keys(counts),datasets:[{data:Object.values(counts),
+      backgroundColor:["#16A34A","#2563EB","#F59E0B","#EF4444"],borderWidth:2,borderColor:"#fff"}]},
+    options:{cutout:"62%",plugins:{legend:{position:"bottom",labels:{font:{size:11},padding:14,boxWidth:12,usePointStyle:true}}},
+      responsive:true,maintainAspectRatio:false}
+  });
+
+  // scorecard
+  document.getElementById("scoreTable").innerHTML=`
+    <thead><tr><th>Department</th><th>Tasks</th><th>Progress</th><th>Risks</th><th>Verdict</th></tr></thead>
+    <tbody>${ds.map(s=>{
+      const drisks=riskRegister().filter(r=>r.title.includes("— "+s.dept)).length;
+      const verdict=s.pct>=80&&drisks===0?["v-strong","On track"]:s.pct>=50?["v-watch","Watch"]:["v-risk","At risk"];
+      return `<tr>
+        <td class="dept-n">${s.dept}</td>
+        <td class="mono">${s.count}</td>
+        <td><span class="minibar"><span style="width:${s.pct}%;background:${s.pct>=80?'#16A34A':s.pct>=50?'#F59E0B':'#EF4444'}"></span></span> <span class="mono" style="font-size:11px">${s.pct}%</span></td>
+        <td class="mono">${drisks}</td>
+        <td><span class="verdict ${verdict[0]}">${verdict[1]}</span></td>
+      </tr>`;
+    }).join("")}</tbody>`;
+}
+
+function monthLabel(d){ return d? new Date(d).toLocaleString(undefined,{month:"long",year:"numeric"}) : "No date"; }
+function byDateDesc(a,b){ return new Date(b.completedDate||0)-new Date(a.completedDate||0); }
+function sectionHead(title,note,color){ return `<h3 style="font-size:14px;color:${color||'var(--ink)'};font-family:'Sora';display:flex;align-items:center;gap:9px;margin:18px 0 12px"><span style="flex:0">${title}</span>${note?`<span style="font-size:11.5px;font-weight:400;color:var(--muted)">— ${note}</span>`:''}</h3>`; }
+
+function completedCard(t,{verify=false,reopen=false,restore=false}={}){
+  const flag = verify
+    ? '<span class="chip needs-update">⏳ awaiting verification</span>'
+    : '<span class="chip approved-flag">✓ verified</span>';
+  const actions = [
+    verify ? `<button class="btn btn-ok btn-sm" data-cverify="${t.id}" ${mgmtUnlocked?'':'disabled'}>Approve &amp; verify</button>`:'',
+    reopen ? `<button class="btn btn-ghost btn-sm" data-reopen="${t.id}" ${mgmtUnlocked?'':'disabled'}>Reopen</button>`:'',
+    restore? `<button class="btn btn-ghost btn-sm" data-restore="${t.id}" ${mgmtUnlocked?'':'disabled'}>Restore to board</button>`:''
+  ].join("");
+  return `<div class="tcard" style="${restore?'opacity:.92':''}">
+    <div class="tcard-top">
+      <div class="title"><h4>${t.title}</h4><p>${t.desc||""}</p>
+        <div class="meta"><span class="chip">${t.dept}</span>${flag}<span class="chip">completed ${fmt(t.completedDate)}</span></div>
+      </div><div>${statusPill(t.status)}</div>
+    </div>
+    ${matrixStrip(t)}
+    <div class="tcard-foot">
+      <div class="dates"><span>Start <b>${fmt(t.start)}</b></span><span>Due <b>${fmt(t.due)}</b></span><span>Completed <b>${fmt(t.completedDate)}</b></span></div>
+      <div class="foot-actions">${actions}</div>
+    </div></div>`;
+}
+
+function groupByMonth(list,opts){
+  const buckets={};
+  list.sort(byDateDesc).forEach(t=>{(buckets[monthLabel(t.completedDate)]=buckets[monthLabel(t.completedDate)]||[]).push(t);});
+  return Object.entries(buckets).map(([month,items])=>`
+    <div class="deptblock"><h3><span class="count" style="background:var(--bg)">${month}</span><span class="count">${items.length}</span><span class="bar"></span></h3>
+      ${items.map(t=>completedCard(t,opts)).join("")}</div>`).join("");
+}
+
+function renderArchive(){
+  const al=document.getElementById("archiveLock"); if(al) al.style.display=mgmtUnlocked?"none":"flex";
+  const completedRecent = active().filter(t=>t.status==="Completed"); // <1yr (active excludes archived)
+  const archived = TASKS.filter(t=>t.archived);
+  const awaiting = completedRecent.filter(t=>!t.approved);
+  const verified = completedRecent.filter(t=>t.approved);
+
+  document.getElementById("archiveKpis").innerHTML=[
+    ["k-done",completedRecent.length,"Completed this year"],
+    ["k-prog",awaiting.length,"Awaiting verification"],
+    ["k-delay",verified.length,"Verified & closed"],
+    ["k-risk",archived.length,"Archived · 1yr+"]
+  ].map(([c,n,cap])=>`<div class="kcard ${c}"><div class="num">${n}</div><div class="cap">${cap}</div></div>`).join("");
+
+  const wrap=document.getElementById("archiveList");
+  let html="";
+  if(awaiting.length){
+    html += sectionHead("⏳ Awaiting verification","sign off to lock the ORSVAI score","var(--s)");
+    html += awaiting.sort(byDateDesc).map(t=>completedCard(t,{verify:true,reopen:true})).join("");
+  }
+  if(verified.length){
+    html += sectionHead("✓ Recently completed","verified & delivered","var(--r)");
+    html += groupByMonth(verified,{reopen:true});
+  }
+  if(archived.length){
+    html += sectionHead("📦 Archived · 1 year +","kept for audit & board history");
+    html += groupByMonth(archived,{restore:true});
+  }
+  wrap.innerHTML = html || `<div class="empty"><div class="ico">✓</div>No completed projects yet. Delivered tasks appear here, organised by date.</div>`;
+}
+
+function renderAll(){ autoArchive(); recordSnapshot(); renderShellKpis(); renderManage(); renderUpdateQueue(); renderProgress(); renderArchive(); }
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2600); }
+
+// tabs
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest(".tab"); if(!b) return;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  const v=b.dataset.view;
+  document.getElementById("view-"+v).classList.add("active");
+  if(v==="board") renderBoard();
+  if(v==="progress") renderProgress();
+  if(v==="archive") renderArchive();
+});
+
+// duration auto-calc
+function recalcDur(){ const d=daysBetween(document.getElementById("f-start").value,document.getElementById("f-due").value); document.getElementById("f-dur").value = d!=null? d+" days":""; }
+document.getElementById("f-start").addEventListener("change",recalcDur);
+document.getElementById("f-due").addEventListener("change",recalcDur);
+
+// add / update task
+let editingId=null;
+const addBtn=document.getElementById("addTask");
+function readForm(){
+  return {
+    dept:document.getElementById("f-dept").value,
+    title:document.getElementById("f-title").value.trim(),
+    desc:document.getElementById("f-desc").value.trim(),
+    prio:document.getElementById("f-prio").value, status:document.getElementById("f-status").value,
+    start:document.getElementById("f-start").value, due:document.getElementById("f-due").value,
+    O:document.getElementById("f-O").value.trim(), R:document.getElementById("f-R").value.trim(),
+    S:document.getElementById("f-S").value.trim(), V:document.getElementById("f-V").value.trim(),
+    A:document.getElementById("f-A").value.trim(), I:document.getElementById("f-I").value.trim()
+  };
+}
+function fillForm(t){
+  document.getElementById("f-dept").value=t.dept; document.getElementById("f-title").value=t.title;
+  document.getElementById("f-desc").value=t.desc||""; document.getElementById("f-prio").value=t.prio;
+  document.getElementById("f-status").value=t.status; document.getElementById("f-start").value=t.start||"";
+  document.getElementById("f-due").value=t.due||""; recalcDur();
+  ["O","R","S","V","A","I"].forEach(k=>document.getElementById("f-"+k).value=t[k]||"");
+}
+function enterEdit(id){
+  const t=TASKS.find(x=>x.id===id); if(!t) return;
+  editingId=id; fillForm(t);
+  document.getElementById("editBar").classList.add("show");
+  addBtn.textContent="Save update";
+  document.querySelector('.tab[data-view="entry"]').click();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function exitEditMode(){
+  editingId=null; document.getElementById("editBar").classList.remove("show");
+  addBtn.textContent="Add development task"; clearForm();
+}
+document.getElementById("exitEdit").addEventListener("click",exitEditMode);
+
+addBtn.addEventListener("click", async ()=>{
+  const f=readForm();
+  if(!f.title){ toast("Add a task title first"); return; }
+  if(!f.O){ toast("No task without an Owner — assign O"); document.getElementById("f-O").focus(); return; }
+
+  if(editingId){
+    const t=TASKS.find(x=>x.id===editingId); const wasComplete=t.status==="Completed";
+    Object.assign(t,f); t.needsUpdate=false; t.feedback="";
+    if(f.status==="Completed" && !t.completedDate) t.completedDate=todayISO();
+    if(f.status!=="Completed") t.completedDate=null;
+    t.history=t.history||[]; t.history.push({date:todayISO(),status:f.status,note:"updated"});
+    persistLocal(TASKS); await Store.update(editingId,{...f,needsUpdate:false,feedback:""});
+    renderAll(); exitEditMode(); toast("Task updated — back in the review queue");
+    if(f.status==="Completed" && !wasComplete) fireConfetti();
+    return;
+  }
+  const task=Object.assign({id:uid(),approved:false,archived:false,needsUpdate:false,feedback:"",
+    completedDate:f.status==="Completed"?todayISO():null,created:todayISO(),
+    history:[{date:todayISO(),status:f.status,note:"created"}]}, f);
+  TASKS.push(task); persistLocal(TASKS); await Store.save(task);
+  renderAll(); clearForm(); toast("Task added — pending approval in Tab 2");
+});
+function clearForm(){ ["f-title","f-desc","f-O","f-R","f-S","f-V","f-A","f-I","f-start","f-due","f-dur"].forEach(id=>document.getElementById(id).value=""); document.getElementById("f-prio").value="Medium"; document.getElementById("f-status").value="Not Started"; }
+document.getElementById("clearForm").addEventListener("click",clearForm);
+
+// management actions (delegated)
+document.getElementById("manageList").addEventListener("click", async e=>{
+  if(!mgmtUnlocked) return;
+  const ap=e.target.closest("[data-approve]"); const rm=e.target.closest("[data-remove]"); const fb=e.target.closest("[data-feedback]");
+  if(fb){
+    const id=fb.dataset.feedback; const t=TASKS.find(x=>x.id===id);
+    const note=prompt("Feedback for the team — what needs updating?", t.feedback||"");
+    if(note===null) return;
+    t.needsUpdate=true; t.feedback=note.trim();
+    persistLocal(TASKS); await Store.update(id,{needsUpdate:true,feedback:t.feedback});
+    renderAll(); toast("Sent back to Tab 1 for update");
+  }
+  if(ap){ const id=ap.dataset.approve; const t=TASKS.find(x=>x.id===id); t.approved=true; persistLocal(TASKS); await Store.update(id,{approved:true}); renderAll(); toast("Task approved & verified"); if(t.status==="Completed") fireConfetti(); }
+  if(rm){ const id=rm.dataset.remove; if(!confirm("Remove this task permanently?")) return; TASKS=TASKS.filter(x=>x.id!==id); persistLocal(TASKS); await Store.remove(id); renderAll(); toast("Task removed"); }
+});
+document.getElementById("manageList").addEventListener("change", async e=>{
+  if(!mgmtUnlocked) return;
+  const s=e.target.closest("[data-status]"); if(!s) return;
+  const id=s.dataset.status; const t=TASKS.find(x=>x.id===id); const wasComplete=t.status==="Completed";
+  t.status=s.value;
+  if(s.value==="Completed" && !t.completedDate) t.completedDate=todayISO();
+  if(s.value!=="Completed") t.completedDate=null;
+  (t.history=t.history||[]).push({date:todayISO(),status:s.value,note:"status change"});
+  persistLocal(TASKS); await Store.update(id,{status:s.value,completedDate:t.completedDate});
+  renderAll(); toast("Status updated");
+  if(s.value==="Completed" && !wasComplete) fireConfetti();
+});
+
+// update queue → load into form
+document.getElementById("updateQueueList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-edit]"); if(b) enterEdit(b.dataset.edit);
+});
+
+// completed / archive actions
+document.getElementById("archiveList").addEventListener("click", async e=>{
+  if(!mgmtUnlocked) return;
+  const rs=e.target.closest("[data-restore]"); const cv=e.target.closest("[data-cverify]"); const ro=e.target.closest("[data-reopen]");
+  if(cv){ const t=TASKS.find(x=>x.id===cv.dataset.cverify); t.approved=true; persistLocal(TASKS); await Store.update(t.id,{approved:true}); renderAll(); renderArchive(); toast("Verified & signed off"); fireConfetti(); }
+  if(ro){ const t=TASKS.find(x=>x.id===ro.dataset.reopen); t.status="In Progress"; t.completedDate=null;
+    (t.history=t.history||[]).push({date:todayISO(),status:"In Progress",note:"reopened"});
+    persistLocal(TASKS); await Store.update(t.id,{status:"In Progress",completedDate:null}); renderAll(); renderArchive(); toast("Reopened — back in the review queue"); }
+  if(rs){ const t=TASKS.find(x=>x.id===rs.dataset.restore); t.archived=false; persistLocal(TASKS); await Store.update(t.id,{archived:false}); renderAll(); renderArchive(); toast("Restored to active board"); }
+});
+
+// period toggle
+document.getElementById("periodToggle").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-p]"); if(!b) return;
+  document.querySelectorAll("#periodToggle button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); curPeriod=b.dataset.p; renderTrend();
+});
+
+// ---- site sign-in gate (tier 1) + inactivity auto sign-out ----
+const gate=document.getElementById("gate");
+const SITE_SESSION="orsvai_site_v1";
+const IDLE_MS=120000;            // 2 minutes of inactivity → auto sign-out
+let idleTimer=null;
+function signedIn(){ return gate.classList.contains("hide"); }
+function resetIdle(){
+  if(!signedIn()) return;        // don't run the clock while on the sign-in screen
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(autoSignOut, IDLE_MS);
+}
+function openSite(){
+  gate.classList.add("hide"); setTimeout(()=>{ gate.style.display="none"; },400);
+  document.getElementById("gateErr").textContent="";
+  resetIdle();
+}
+function autoSignOut(){
+  clearTimeout(idleTimer);
+  try{ sessionStorage.removeItem(SITE_SESSION); }catch(e){}
+  mgmtUnlocked=false;            // also drop management access
+  const sc=document.getElementById("scrim"); if(sc) sc.classList.remove("show");
+  renderManage(); renderArchive();
+  gate.style.display="grid"; gate.classList.remove("hide");
+  document.getElementById("gatePw").value="";
+  document.getElementById("gateErr").textContent="Signed out after 2 minutes of inactivity — please sign in again.";
+  setTimeout(()=>document.getElementById("gatePw").focus(),60);
+}
+async function trySite(){
+  const v=document.getElementById("gatePw").value;
+  if(await sha256(v)===CONFIG.SITE_HASH){ try{sessionStorage.setItem(SITE_SESSION,"1");}catch(e){} openSite(); }
+  else { document.getElementById("gateErr").textContent="Incorrect password — try again."; document.getElementById("gatePw").select(); }
+}
+document.getElementById("gateBtn").addEventListener("click",trySite);
+document.getElementById("gatePw").addEventListener("keydown",e=>{ if(e.key==="Enter") trySite(); });
+["mousemove","mousedown","keydown","scroll","touchstart","click"].forEach(ev=>
+  document.addEventListener(ev, resetIdle, {passive:true}));
+try{ if(sessionStorage.getItem(SITE_SESSION)==="1") openSite(); else document.getElementById("gatePw").focus(); }catch(e){ document.getElementById("gatePw").focus(); }
+
+// ---- management modal (tier 2) ----
+const scrim=document.getElementById("scrim");
+function openMgmt(e){ if(e)e.preventDefault(); scrim.classList.add("show"); setTimeout(()=>document.getElementById("pwInput").focus(),50); }
+document.getElementById("unlockBtn").addEventListener("click",openMgmt);
+document.getElementById("unlockBtn2").addEventListener("click",openMgmt);
+document.getElementById("pwCancel").addEventListener("click",()=>scrim.classList.remove("show"));
+document.getElementById("pwSubmit").addEventListener("click", async ()=>{
+  const val=document.getElementById("pwInput").value;
+  const h=await sha256(val);
+  if(h===CONFIG.MGMT_HASH){
+    mgmtUnlocked=true; scrim.classList.remove("show"); document.getElementById("pwInput").value="";
+    renderManage(); renderArchive(); toast("Management access granted");
+  } else { toast("Incorrect key"); }
+});
+document.getElementById("pwInput").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("pwSubmit").click(); });
+
+/* ---------- boot ---------- */
+(async function init(){
+  renderEntryDept();
+  document.getElementById("f-start").value=todayISO();
+  TASKS = await Store.load();
+  renderAll();
+})();
+</script>
 
 </body>
 </html>
