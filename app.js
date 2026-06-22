@@ -127,6 +127,9 @@ function loadDB() {
 /* Backfill new schema fields onto employees stored under older versions. */
 function migrateEmployees() {
   let dirty = false;
+  // Fields that should be cleaned of  / NBSP / zero-width chars
+  const TEXT_FIELDS = ['name','designation','department','section','subSection',
+                       'line','unit','building','floor','mobile','nid'];
   for (const e of (DB.employees || [])) {
     if (!e.status) { e.status = 'Active'; dirty = true; }
     if (!e.docs)   { e.docs = {}; dirty = true; }
@@ -143,8 +146,30 @@ function migrateEmployees() {
     if (e.createdAt == null) { e.createdAt = e.doj || ymd(new Date()); dirty = true; }
     if (e.building == null) { e.building = ''; dirty = true; }
     if (e.floor == null) { e.floor = ''; dirty = true; }
+    // Scrub  replacement chars and NBSP/zero-width that survived an earlier bad import
+    for (const k of TEXT_FIELDS) {
+      const v = e[k];
+      if (typeof v !== 'string') continue;
+      if (/[\uFFFD\u00A0\u2007\u202F\u200B-\u200D\u2060\uFEFF]/.test(v) ||
+          /\s{2,}/.test(v)) {
+        e[k] = cleanLegacyText(v);
+        dirty = true;
+      }
+    }
   }
   if (dirty) saveDB();
+}
+
+/* Repair text fields that were imported under the broken decoder.
+   Treats every  as a missing space (almost always correct for this dataset). */
+function cleanLegacyText(s) {
+  return String(s)
+    .replace(/\uFEFF/g, '')
+    .replace(/\uFFFD/g, ' ')                  // replacement → space
+    .replace(/[\u00A0\u2007\u202F]/g, ' ')    // NBSPs → space
+    .replace(/[\u200B-\u200D\u2060]/g, '')    // zero-width → drop
+    .replace(/[ \t]+/g, ' ')
+    .trim();
 }
 function saveDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
@@ -1582,20 +1607,72 @@ function handleBulkFile(file) {
     try {
       let rows = [];
       if (ext === 'csv') {
-        const wb = XLSX.read(ev.target.result, { type: 'string' });
+        // Read CSV bytes and decode with encoding fallback (UTF-8 → Windows-1252)
+        const text = decodeCsvBytes(ev.target.result);
+        const wb = XLSX.read(text, { type: 'string' });
         rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       } else {
+        // XLSX/XLS — always Unicode internally, but still normalise cells
         const wb = XLSX.read(ev.target.result, { type: 'array' });
         rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       }
+      rows = rows.map(normaliseRow);
       validateBulkRows(rows);
     } catch (e) {
       console.error(e);
       toast('Failed to parse file: ' + e.message, 'error');
     }
   };
-  if (ext === 'csv') reader.readAsText(file);
-  else reader.readAsArrayBuffer(file);
+  // Always read as bytes so we can pick the right text decoder
+  reader.readAsArrayBuffer(file);
+}
+
+/* Decode a CSV byte buffer. Tries UTF-8 first; if it sees too many U+FFFD
+   replacement characters, retries with Windows-1252 (common when CSVs are
+   saved from Excel on Windows in Bangladesh / South-Asian locales). */
+function decodeCsvBytes(buf) {
+  const bytes = new Uint8Array(buf);
+  // UTF-8 attempt
+  let text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  // Strip BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const utf8Replacements = (text.match(/\uFFFD/g) || []).length;
+  if (utf8Replacements > 2) {
+    // Try Windows-1252 fallback
+    try {
+      const alt = new TextDecoder('windows-1252', { fatal: false }).decode(bytes);
+      const altReplacements = (alt.match(/\uFFFD/g) || []).length;
+      if (altReplacements < utf8Replacements) {
+        toast(`File decoded as Windows-1252 (${utf8Replacements} bad UTF-8 chars detected) — re-save your file as UTF-8 next time`, 'warn');
+        return alt;
+      }
+    } catch (_) { /* keep UTF-8 */ }
+  }
+  return text;
+}
+
+/* Normalise a parsed row: clean every key and string value. */
+function normaliseRow(row) {
+  const out = {};
+  for (const k in row) {
+    const cleanKey = normaliseString(k, /*forKey*/ true);
+    out[cleanKey] = normaliseString(row[k], false);
+  }
+  return out;
+}
+
+/* Strip BOM, replacement chars (), and normalise non-breaking + zero-width
+   spaces back to regular spaces; collapse runs of whitespace; trim. */
+function normaliseString(v, forKey) {
+  if (v == null) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return v;
+  let s = String(v);
+  s = s.replace(/\uFEFF/g, '');                 // BOM
+  s = s.replace(/\uFFFD/g, ' ');                // � (replacement)
+  s = s.replace(/[\u00A0\u2007\u202F]/g, ' ');  // non-breaking spaces → space
+  s = s.replace(/[\u200B-\u200D\u2060]/g, '');  // zero-width chars → drop
+  s = s.replace(/[ \t]+/g, ' ');                // collapse multiple spaces/tabs
+  return s.trim();
 }
 
 function validateBulkRows(rows) {
