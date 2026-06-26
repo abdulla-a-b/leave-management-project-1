@@ -66,7 +66,7 @@ HOLIDAYS_BD = [
     ("2026-12-25", "Christmas Day"),
 ]
 HOLIDAY_DATES = {h[0] for h in HOLIDAYS_BD}
-WEEK_OFF = 4  # Friday in Python's weekday() (0=Mon)
+WEEK_OFF = {5}  # Saturday only (Python's weekday(): 0=Mon … 5=Sat … 6=Sun)
 
 FESTIVAL_KEYS = {
     "Eid-ul-Fitr":      "Eid-ul-Fitr",
