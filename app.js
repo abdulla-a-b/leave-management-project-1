@@ -198,19 +198,33 @@ async function remoteCall(action, payload) {
 
 /* ---------- 6. LEAVE MATH ---------- */
 function isWeekend(ymdStr) {
-  // Bangladesh week-off: Friday only for most factories
+  // Company week-off: Saturday only
   const d = parseYMD(ymdStr);
-  return d.getDay() === 5;
+  return d.getDay() === 6;
 }
 
-function calcLeaveSplit(startYMD, endYMD) {
+function calcLeaveSplit(startYMD, endYMD, leaveType) {
   const dates = eachDateInRange(startYMD, endYMD);
   let working = 0, holidays = 0;
   for (const d of dates) {
     if (HOLIDAY_SET.has(d) || isWeekend(d)) holidays++;
     else working++;
   }
-  return { total: working, paid: working, unpaid: 0, holidays, calendar: dates.length };
+  // Bangladesh Labour Act § 115 (Casual) and § 116 (Sick):
+  // a weekly holiday or festival holiday falling WITHIN the leave period
+  // is counted as part of the leave. For Annual (§ 117) and Maternity,
+  // intervening holidays do NOT count against the leave balance.
+  const countsIntervening = (leaveType === 'Casual' || leaveType === 'Sick');
+  const total = countsIntervening ? dates.length : working;
+  return {
+    total,
+    paid: total,
+    unpaid: 0,
+    holidays,
+    working,
+    calendar: dates.length,
+    countsIntervening
+  };
 }
 
 function balanceFor(empId) {
@@ -381,9 +395,11 @@ function updateInspector() {
     return;
   }
 
-  const split = calcLeaveSplit(start, end);
+  const split = calcLeaveSplit(start, end, selectedLeaveType);
   $('#ins-days').textContent = split.total;
-  $('#ins-daysMeta').textContent = `${daysBetween(start,end)} calendar days · ${split.holidays} non-working`;
+  $('#ins-daysMeta').textContent = split.countsIntervening
+    ? `${split.calendar} calendar days · ${split.holidays} intervening holiday(s) counted as ${selectedLeaveType} (§ 115/116)`
+    : `${daysBetween(start,end)} calendar days · ${split.holidays} non-working excluded`;
 
   let paid = split.paid, unpaid = 0;
 
@@ -481,7 +497,7 @@ async function submitApplication() {
   if (overlappingApplications(empId, start, end).length) {
     return toast('Application overlaps existing record', 'error');
   }
-  const split = calcLeaveSplit(start, end);
+  const split = calcLeaveSplit(start, end, selectedLeaveType);
   const used = balanceFor(empId);
   const cap  = allocationFor(empRec, selectedLeaveType);
   let paid = split.paid, unpaid = 0;
