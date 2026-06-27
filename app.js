@@ -195,6 +195,49 @@ async function remoteCall(action, payload) {
   }
 }
 
+/* Pull the full roster + applications from Google Sheets and replace local
+   state. This is what makes the system cross-device-safe: localStorage is
+   only a cache, the Sheet is the source of truth. */
+async function remotePullAll(silent = false) {
+  if (!SETTINGS.useRemote || !SETTINGS.apiUrl) return false;
+  if (!silent) toast('Syncing from Google Sheets…', 'ok');
+  try {
+    const empsRes = await remoteCall('listEmployees', {});
+    const appsRes = await remoteCall('listApps', {});
+    if (empsRes && empsRes.ok && Array.isArray(empsRes.data)) {
+      DB.employees = empsRes.data.map(normaliseRemoteEmp);
+    }
+    if (appsRes && appsRes.ok && Array.isArray(appsRes.data)) {
+      DB.applications = appsRes.data.map(normaliseRemoteApp);
+    }
+    saveDB();
+    SETTINGS.lastSync = new Date().toISOString();
+    saveSettings();
+    if (!silent) toast(`Synced ${DB.employees.length} employees · ${DB.applications.length} apps`, 'ok');
+    return true;
+  } catch (e) {
+    console.error('Pull failed:', e);
+    if (!silent) toast('Could not pull from Sheet — check Settings & deploy URL', 'error');
+    return false;
+  }
+}
+
+/* Apps Script returns JSON-encoded objects for `docs` and `customAllocation`
+   as plain strings. Decode them so the dashboard works against them. */
+function normaliseRemoteEmp(r) {
+  const out = { ...r };
+  if (typeof out.docs === 'string' && out.docs.startsWith('{')) {
+    try { out.docs = JSON.parse(out.docs); } catch (_) { out.docs = {}; }
+  }
+  if (typeof out.customAllocation === 'string' && out.customAllocation.startsWith('{')) {
+    try { out.customAllocation = JSON.parse(out.customAllocation); } catch (_) { out.customAllocation = null; }
+  }
+  if (!out.docs) out.docs = {};
+  if (out.customAllocation === '' || out.customAllocation === undefined) out.customAllocation = null;
+  return out;
+}
+function normaliseRemoteApp(r) { return { ...r }; }
+
 
 /* ---------- 6. LEAVE MATH ---------- */
 function isWeekend(ymdStr) {
@@ -1214,6 +1257,7 @@ function refreshAll() {
   if (CURRENT_MODULE === 'employees') renderEmployees();
   populateMobilePicker();
   syncWelcomeBanner();
+  updateSyncStatusLine();
 }
 
 /* ---------- 17. MODULE H: EMPLOYEE ADMIN ---------- */
@@ -1309,7 +1353,7 @@ function renderEmployees() {
 
   const tbody = $('#emp-body');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="tbl-empty"><span class="big">No employees match.</span>Try a different filter, or use Add / Bulk Import.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="tbl-empty"><span class="big">No employees match.</span>Try a different filter, or use Add / Bulk Import.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(e => {
@@ -1321,7 +1365,10 @@ function renderEmployees() {
     const remCL = Math.max(0, alloc.Casual - used.Casual);
     const remSL = Math.max(0, alloc.Sick - used.Sick);
     const remAL = Math.max(0, alloc.Annual - used.Annual);
-    return `<tr data-id="${e.id}">
+    const selected = _empSelected.has(e.id) ? 'row-selected' : '';
+    const checked  = _empSelected.has(e.id) ? 'checked' : '';
+    return `<tr data-id="${e.id}" class="${selected}">
+      <td class="emp-cb-col"><input type="checkbox" class="emp-cb" data-id="${e.id}" ${checked}/></td>
       <td><strong>${e.id}</strong></td>
       <td class="emp-name-cell">
         <strong>${escapeHtml(e.name)}</strong>
@@ -1350,9 +1397,22 @@ function renderEmployees() {
             ? `<button class="emp-row-btn warn" data-act="terminate" data-id="${e.id}">Terminate</button>`
             : `<button class="emp-row-btn ok" data-act="reactivate" data-id="${e.id}">Reactivate</button>`
         }
+        <button class="emp-row-btn warn" data-act="delete" data-id="${e.id}" title="Permanently remove">Delete</button>
       </td>
     </tr>`;
   }).join('');
+
+  // bind row checkboxes
+  tbody.querySelectorAll('.emp-cb').forEach(cb => {
+    cb.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const id = cb.dataset.id;
+      if (cb.checked) _empSelected.add(id); else _empSelected.delete(id);
+      const tr = cb.closest('tr');
+      if (tr) tr.classList.toggle('row-selected', cb.checked);
+      syncBulkBar();
+    });
+  });
 
   // bind action buttons
   tbody.querySelectorAll('.emp-row-btn').forEach(btn => {
@@ -1362,9 +1422,13 @@ function renderEmployees() {
       if (act === 'edit')        openEmployeeDialog(id);
       if (act === 'terminate')   openTerminateDialog(id);
       if (act === 'reactivate')  reactivateEmployee(id);
+      if (act === 'delete')      deleteSingleEmployee(id);
     });
   });
+  syncBulkBar();
 }
+
+/* Empty-state tbody also has to span the right number of columns now (10) */
 
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1693,10 +1757,10 @@ function normaliseString(v, forKey) {
 
 function validateBulkRows(rows) {
   const seenIds = new Set(DB.employees.map(e => e.id));
-  const dupInFile = new Set();
   const idsInFile = new Set();
   _bulkParsed = rows.map((r, idx) => {
     const issues = [];
+    const warnings = [];
     const get = k => String(r[k] == null ? '' : r[k]).trim();
     const id = get('ID');
     const name = get('Name');
@@ -1710,29 +1774,32 @@ function validateBulkRows(rows) {
     if (!mobile) issues.push('Mobile missing');
     if (!dept) issues.push('Department missing');
     if (!desig) issues.push('Designation missing');
-    if (id && seenIds.has(id)) issues.push('ID already in roster');
-    if (id && idsInFile.has(id)) { issues.push('Duplicate in file'); dupInFile.add(id); }
+    if (id && seenIds.has(id)) warnings.push('ID already in roster — will update if toggled');
+    if (id && idsInFile.has(id)) issues.push('Duplicate in file');
     if (id) idsInFile.add(id);
     if (doj && !/^\d{4}-\d{2}-\d{2}$/.test(doj)) {
-      // try to normalise Excel serial date / dd/mm/yyyy
       const norm = normaliseDate(doj, r['DOJ']);
       if (norm) r._dojNorm = norm;
       else issues.push('DOJ format (use YYYY-MM-DD)');
     } else if (doj) {
       r._dojNorm = doj;
     }
-    return { row: idx + 2, raw: r, id, name, designation: desig, department: dept, doj: r._dojNorm || doj, mobile, issues };
+    return { row: idx + 2, raw: r, id, name, designation: desig, department: dept, doj: r._dojNorm || doj, mobile, issues, warnings };
   });
 
-  const valid = _bulkParsed.filter(p => p.issues.length === 0);
-  _bulkValid = valid;
+  const hardValid = _bulkParsed.filter(p => p.issues.length === 0);
+  _bulkValid = hardValid;
+  const hasExisting = _bulkParsed.some(p => p.warnings.length);
 
   $('#bulkStep1').hidden = true;
   $('#bulkStep2').hidden = false;
   $('#bulkBackBtn').hidden = false;
   $('#bulkCommitBtn').hidden = false;
-  $('#bulkCommitBtn').disabled = valid.length === 0;
-  $('#bulkCommitBtn').textContent = `Import ${valid.length} Valid Row${valid.length === 1 ? '' : 's'}`;
+  $('#bulkCommitBtn').disabled = hardValid.length === 0;
+  $('#bulkCommitBtn').textContent = `Import ${hardValid.length} Row${hardValid.length === 1 ? '' : 's'}`;
+  // Show "Update existing" toggle only when there's overlap with the existing roster
+  const toggleWrap = $('#bulkUpdateToggleWrap');
+  if (toggleWrap) toggleWrap.hidden = !hasExisting;
 
   const invalid = _bulkParsed.length - valid.length;
   $('#bulkSummary').innerHTML = `
@@ -1747,7 +1814,12 @@ function validateBulkRows(rows) {
       <th>Dept</th><th>DOJ</th><th>Mobile</th><th>Status</th>
     </tr>`;
   $('#bulkPreviewBody').innerHTML = _bulkParsed.map(p => {
-    const cls = p.issues.length ? 'row-invalid' : '';
+    const cls = p.issues.length ? 'row-invalid' : (p.warnings && p.warnings.length ? 'row-warn' : '');
+    const statusCell = p.issues.length
+      ? `<span class="cell-err">✘</span><span class="row-issues">${p.issues.join(' · ')}</span>`
+      : (p.warnings && p.warnings.length
+          ? `<span style="color:var(--saffron)">⚠</span><span class="row-issues" style="color:var(--saffron)">${p.warnings.join(' · ')}</span>`
+          : '<span style="color:var(--sage)">✓ ok</span>');
     return `<tr class="${cls}">
       <td>${p.row}</td>
       <td>${escapeHtml(p.id)}</td>
@@ -1756,9 +1828,7 @@ function validateBulkRows(rows) {
       <td>${escapeHtml(p.department)}</td>
       <td>${escapeHtml(p.doj)}</td>
       <td>${escapeHtml(p.mobile)}</td>
-      <td>${p.issues.length
-        ? `<span class="cell-err">✘</span><span class="row-issues">${p.issues.join(' · ')}</span>`
-        : '<span style="color:var(--sage)">✓ ok</span>'}</td>
+      <td>${statusCell}</td>
     </tr>`;
   }).join('');
 }
@@ -1780,13 +1850,15 @@ function normaliseDate(s, raw) {
 
 function commitBulk() {
   if (!_bulkValid.length) return;
-  let added = 0;
+  const updateMode = !!$('#bulkUpdateMode')?.checked;
+  let added = 0, updated = 0;
+  const remoteRows = [];
   _bulkValid.forEach(p => {
     const r = p.raw;
     const customAllocation = (r.CL !== '' || r.SL !== '' || r.AL !== '')
       ? { Casual: Number(r.CL || 0), Sick: Number(r.SL || 0), Annual: Number(r.AL || 0) }
       : null;
-    const emp = {
+    const newFields = {
       id: p.id,
       name: p.name,
       designation: p.designation,
@@ -1802,20 +1874,29 @@ function commitBulk() {
       nid: String(r.NID || '').trim(),
       dob: String(r.DOB || '').trim(),
       gender: String(r.Gender || '').trim().toUpperCase().slice(0,1) || '',
-      customAllocation,
-      docs: {},
-      status: 'Active',
-      terminatedAt: '',
-      terminationReason: '',
-      createdAt: ymd(new Date())
+      customAllocation
     };
-    DB.employees.push(emp);
-    remoteCall('addEmployee', emp);
-    added++;
+    const existingIdx = DB.employees.findIndex(e => e.id === p.id);
+    if (existingIdx >= 0 && updateMode) {
+      // merge — keep status/docs/terminatedAt etc; overwrite from upload
+      DB.employees[existingIdx] = { ...DB.employees[existingIdx], ...newFields };
+      remoteRows.push(DB.employees[existingIdx]);
+      updated++;
+    } else if (existingIdx < 0) {
+      const emp = { ...newFields, docs: {}, status: 'Active', terminatedAt: '', terminationReason: '', createdAt: ymd(new Date()) };
+      DB.employees.push(emp);
+      remoteRows.push(emp);
+      added++;
+    }
+    // else: existing & not update mode → skip silently (already filtered in validate)
   });
   saveDB();
+  // Single remote call for bulk efficiency
+  if (remoteRows.length) {
+    remoteCall(updateMode ? 'upsertEmployees' : 'bulkImportEmployees', { rows: remoteRows });
+  }
   $('#bulkDialog').close();
-  toast(`Imported ${added} employee${added === 1 ? '' : 's'}`, 'ok');
+  toast(`Imported ${added} new${updated ? `, updated ${updated}` : ''}`, 'ok');
   refreshAll();
 }
 
@@ -1841,14 +1922,154 @@ function exportRoster() {
   exportRows(rows, 'leave-atlas-roster-' + ymd(new Date()), 'xlsx');
 }
 
+/* ---- Bulk selection state + operations ---- */
+const _empSelected = new Set();
+
+function syncBulkBar() {
+  const bar = $('#empBulkBar');
+  const count = _empSelected.size;
+  if (!bar) return;
+  bar.hidden = count === 0;
+  $('#empBulkCount').textContent = count;
+  // sync select-all checkbox state
+  const all = $('#empSelectAll');
+  if (all) {
+    const visibleCbs = $$('#emp-body .emp-cb');
+    const checkedVisible = visibleCbs.filter(cb => cb.checked).length;
+    all.checked = visibleCbs.length > 0 && checkedVisible === visibleCbs.length;
+    all.indeterminate = checkedVisible > 0 && checkedVisible < visibleCbs.length;
+  }
+}
+
+function toggleSelectAll(checked) {
+  $$('#emp-body .emp-cb').forEach(cb => {
+    cb.checked = checked;
+    const id = cb.dataset.id;
+    if (checked) _empSelected.add(id); else _empSelected.delete(id);
+    const tr = cb.closest('tr');
+    if (tr) tr.classList.toggle('row-selected', checked);
+  });
+  syncBulkBar();
+}
+
+function clearSelection() {
+  _empSelected.clear();
+  $$('#emp-body .emp-cb').forEach(cb => { cb.checked = false; });
+  $$('#emp-body tr.row-selected').forEach(tr => tr.classList.remove('row-selected'));
+  syncBulkBar();
+}
+
+function deleteSingleEmployee(id) {
+  const e = DB.employees.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`Permanently delete ${id} — ${e.name}?\n\nThis removes the record from the roster. Use Terminate instead if you want to keep history.`)) return;
+  const idx = DB.employees.findIndex(x => x.id === id);
+  if (idx >= 0) DB.employees.splice(idx, 1);
+  _empSelected.delete(id);
+  saveDB();
+  remoteCall('deleteEmployee', { id });
+  toast(`${id} deleted`, 'ok');
+  refreshAll();
+}
+
+async function bulkDeleteSelected() {
+  const ids = Array.from(_empSelected);
+  if (!ids.length) return;
+  if (!confirm(`Permanently delete ${ids.length} employee${ids.length===1?'':'s'}?\n\nThis is irreversible. Use Bulk Terminate instead to keep historical records.`)) return;
+  DB.employees = DB.employees.filter(e => !_empSelected.has(e.id));
+  saveDB();
+  // remote bulk delete if available, fallback to individual calls
+  const res = await remoteCall('bulkDeleteEmployees', { ids });
+  if (!res) for (const id of ids) remoteCall('deleteEmployee', { id });
+  clearSelection();
+  toast(`Deleted ${ids.length} employee${ids.length===1?'':'s'}`, 'ok');
+  refreshAll();
+}
+
+function bulkTerminateSelected() {
+  const ids = Array.from(_empSelected);
+  if (!ids.length) return;
+  const date = prompt('Last working day for all selected (YYYY-MM-DD)?', ymd(new Date()));
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('Invalid date — cancelled', 'error');
+  const reason = prompt('Separation reason?\n(Resignation / Contract End / Termination / Retirement / Retrenchment / Death / Absconding)') || 'Bulk separation';
+  let count = 0;
+  ids.forEach(id => {
+    const e = DB.employees.find(x => x.id === id);
+    if (!e) return;
+    e.status = 'Terminated';
+    e.terminatedAt = date;
+    e.terminationReason = reason;
+    remoteCall('terminateEmployee', { id: e.id, terminatedAt: date, reason });
+    count++;
+  });
+  saveDB();
+  clearSelection();
+  toast(`Terminated ${count} employee${count===1?'':'s'}`, 'ok');
+  refreshAll();
+}
+
+function bulkReactivateSelected() {
+  const ids = Array.from(_empSelected);
+  if (!ids.length) return;
+  if (!confirm(`Reactivate ${ids.length} employee${ids.length===1?'':'s'}?`)) return;
+  let count = 0;
+  ids.forEach(id => {
+    const e = DB.employees.find(x => x.id === id);
+    if (!e) return;
+    e.status = 'Active';
+    e.terminatedAt = '';
+    e.terminationReason = '';
+    remoteCall('updateEmployee', e);
+    count++;
+  });
+  saveDB();
+  clearSelection();
+  toast(`Reactivated ${count} employee${count===1?'':'s'}`, 'ok');
+  refreshAll();
+}
+
+/* ---- Sync status display ---- */
+function updateSyncStatusLine() {
+  const el = $('#empSyncStatus');
+  if (!el) return;
+  const remote = !!(SETTINGS.useRemote && SETTINGS.apiUrl);
+  const n = DB.employees.length;
+  if (!remote) {
+    el.className = 'emp-sync-status warn';
+    el.innerHTML = `⚠ Local-only mode — ${n} employee${n===1?'':'s'} in this browser only. Data will be lost if you switch browsers, clear cache, or this device fails. <strong>Open ⚙ Settings and connect Google Sheets immediately.</strong>`;
+    return;
+  }
+  const last = SETTINGS.lastSync ? new Date(SETTINGS.lastSync) : null;
+  const ago = last ? Math.round((Date.now() - last.getTime()) / 60000) : null;
+  el.className = 'emp-sync-status ok';
+  el.textContent = last
+    ? `✓ Synced with Google Sheets · ${n} employees · last pull ${ago < 1 ? 'just now' : ago + ' min ago'}`
+    : `Connected to Google Sheets · click ↻ Sync now to pull the latest roster.`;
+}
+
 function bindEmployees() {
   $('#empAddBtn').addEventListener('click', () => openEmployeeDialog(null));
   $('#empBulkBtn').addEventListener('click', openBulkDialog);
   $('#empTemplateBtn').addEventListener('click', downloadTemplate);
   $('#empExportBtn').addEventListener('click', exportRoster);
+  $('#empSyncBtn').addEventListener('click', async () => {
+    if (!SETTINGS.useRemote || !SETTINGS.apiUrl) {
+      toast('Open Settings and connect to Google Sheets first', 'error');
+      return openSettings();
+    }
+    await remotePullAll(false);
+    refreshAll();
+  });
   $('#empSearch').addEventListener('input', renderEmployees);
   $('#empStatusFilter').addEventListener('change', renderEmployees);
   $('#empDeptFilter').addEventListener('change', renderEmployees);
+
+  // bulk select
+  $('#empSelectAll').addEventListener('change', (e) => toggleSelectAll(e.target.checked));
+  $('#empBulkClear').addEventListener('click', clearSelection);
+  $('#empBulkDelete').addEventListener('click', bulkDeleteSelected);
+  $('#empBulkTerminate').addEventListener('click', bulkTerminateSelected);
+  $('#empBulkReactivate').addEventListener('click', bulkReactivateSelected);
 
   // dialog buttons
   $('#empDialogCancel').addEventListener('click', () => $('#empDialog').close());
@@ -1930,7 +2151,7 @@ function updateConnIndicator() {
 }
 
 /* ---------- 18. INIT ---------- */
-function init() {
+async function init() {
   loadDB();
 
   // today's date
@@ -1947,13 +2168,13 @@ function init() {
 
   // reset
   $('#clearBtn').addEventListener('click', () => {
-    if (!confirm('Reset all local data? This clears the roster and all applications.')) return;
+    if (!confirm('Reset all LOCAL data?\n\nThis clears the in-browser cache only. If you have Google Sheets sync ON, your Sheet is untouched and the next sync will repopulate this browser.')) return;
     DB = { employees: [], applications: [] };
     saveDB();
     refreshAll();
     syncWelcomeBanner();
     setRole('hradmin');
-    toast('Reset complete — start by importing employees', 'ok');
+    toast('Local cache cleared — Sheet data is safe', 'ok');
   });
 
   bindApply();
@@ -1963,10 +2184,14 @@ function init() {
   bindWelcomeBanner();
   updateConnIndicator();
 
-  // PILOT MODE: no demo seed. Empty roster lands on Employee Admin with a welcome banner.
+  // PILOT MODE: no demo seed. If remote is configured, pull authoritative data
+  // from the Sheet so this device always shows the latest state.
+  if (SETTINGS.useRemote && SETTINGS.apiUrl) {
+    await remotePullAll(true);
+  }
+
   const isFreshPilot = !DB.employees.length;
   if (isFreshPilot) {
-    // Switch role to HR Admin and open Module H so the first thing the operator sees is "add employees".
     $('#roleSelect').value = 'hradmin';
     setRole('hradmin');
   } else {
