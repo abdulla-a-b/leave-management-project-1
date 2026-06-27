@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=pilotA-2026-06-18d">
+<link rel="stylesheet" href="styles.css?v=pilotA-2026-06-19a">
 </head>
 <body>
 
@@ -603,6 +603,7 @@
         <button class="ghost-btn" id="empBulkBtn">⬆ Bulk Import</button>
         <button class="ghost-btn" id="empTemplateBtn">⬇ Template (CSV)</button>
         <button class="ghost-btn" id="empExportBtn">⬇ Export Roster (Excel)</button>
+        <button class="ghost-btn" id="empSyncBtn" title="Pull fresh data from Google Sheets">↻ Sync now</button>
         <div class="emp-actions-spacer"></div>
         <input type="search" id="empSearch" class="emp-search" placeholder="Search ID / name / mobile / NID…" />
         <select id="empStatusFilter" class="emp-filter">
@@ -615,11 +616,24 @@
         </select>
       </div>
 
+      <!-- Sync status banner -->
+      <div class="emp-sync-status" id="empSyncStatus"></div>
+
+      <!-- Bulk action bar (appears only when ≥1 row selected) -->
+      <div class="emp-bulkbar" id="empBulkBar" hidden>
+        <span class="emp-bulkbar-count"><strong id="empBulkCount">0</strong> selected</span>
+        <button class="emp-row-btn ok"   id="empBulkReactivate">Reactivate</button>
+        <button class="emp-row-btn warn" id="empBulkTerminate">Terminate</button>
+        <button class="emp-row-btn warn" id="empBulkDelete">Delete</button>
+        <button class="emp-row-btn"      id="empBulkClear">Clear selection</button>
+      </div>
+
       <!-- Roster table -->
       <div class="table-wrap">
         <table class="data-table emp-table">
           <thead>
             <tr>
+              <th class="emp-cb-col"><input type="checkbox" id="empSelectAll" aria-label="Select all"/></th>
               <th>ID</th>
               <th>Name · Mobile</th>
               <th>Designation</th>
@@ -795,6 +809,9 @@
     </div>
 
     <div class="dialog-actions">
+      <label class="ck bulk-update-toggle" id="bulkUpdateToggleWrap" hidden>
+        <input type="checkbox" id="bulkUpdateMode"> Update existing employees (match by ID)
+      </label>
       <button value="cancel" class="ghost-btn" type="button" id="bulkDialogCancel">Cancel</button>
       <button value="back" class="ghost-btn" type="button" id="bulkBackBtn" hidden>← Choose different file</button>
       <button value="commit" class="primary-btn" id="bulkCommitBtn" hidden disabled>Import Valid Rows</button>
@@ -820,7 +837,7 @@
 <!-- ============== LIBS ============== -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=pilotA-2026-06-18d"></script>
+<script src="app.js?v=pilotA-2026-06-19a"></script>
 
 </body>
 </html>
