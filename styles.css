@@ -761,7 +761,7 @@ body::before {
 
 .bal-quad {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 .quad {
@@ -771,6 +771,12 @@ body::before {
   text-align: center;
   border-top: 2px solid var(--saffron);
 }
+.quad.quad-lwp {
+  border-top-color: var(--ink-3);
+  background: linear-gradient(180deg, rgba(99,99,99,.05), var(--paper-2));
+}
+.quad.quad-lwp .q-val { color: var(--ink-2); }
+.quad.quad-lwp .q-sub { color: var(--oxblood); font-weight: 600; letter-spacing: .04em; }
 .q-lab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .q-val { font-family: var(--serif); font-size: 28px; font-weight: 500; line-height: 1; margin: 6px 0 2px; }
 .q-sub { font-size: 11px; color: var(--ink-3); }
