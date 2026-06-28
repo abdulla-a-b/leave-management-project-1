@@ -9,6 +9,7 @@ const POLICY = {
   Sick:      { cap: 14,  paid: true },
   Annual:    { cap: 20,  paid: true },     // typical Bangladesh Labour Act allowance
   Maternity: { cap: 120, paid: true },
+  LWP:       { cap: 999, paid: false },    // Leave Without Pay — unpaid, no balance to track
   Others:    { cap: 999, paid: false }
 };
 
@@ -272,7 +273,7 @@ function calcLeaveSplit(startYMD, endYMD, leaveType) {
 
 function balanceFor(empId) {
   const year = new Date().getFullYear();
-  const used = { Casual: 0, Sick: 0, Annual: 0, Maternity: 0 };
+  const used = { Casual: 0, Sick: 0, Annual: 0, Maternity: 0, LWP: 0 };
   for (const a of DB.applications) {
     if (a.empId !== empId) continue;
     if (a.status !== 'Approved') continue;
@@ -291,7 +292,7 @@ function allocationFor(emp, type) {
   if (!emp) return POLICY[type] ? POLICY[type].cap : 0;
   const custom = emp.customAllocation || {};
   if (custom[type] != null && custom[type] !== '') return Number(custom[type]);
-  if (type === 'Maternity' || type === 'Others') return POLICY[type].cap;
+  if (type === 'Maternity' || type === 'Others' || type === 'LWP') return POLICY[type].cap;
   if (!emp.doj) return POLICY[type].cap;
   const year = new Date().getFullYear();
   const doj = parseYMD(emp.doj);
@@ -465,7 +466,10 @@ function updateInspector() {
         `Within ${selectedLeaveType} balance · ${remaining - split.total} day(s) remaining after this leave.`);
     } else {
       paid = 0; unpaid = split.total;
-      addFinding(findings, 'warn', `"${selectedLeaveType}" is treated as unpaid by policy.`);
+      const msg = selectedLeaveType === 'LWP'
+        ? 'Leave Without Pay — all days will be unpaid (no salary deduction marker for this period).'
+        : `"${selectedLeaveType}" is treated as unpaid by policy.`;
+      addFinding(findings, 'warn', msg);
     }
   } else if (!selectedLeaveType) {
     addFinding(findings, 'warn', 'Pick a leave type.');
@@ -1182,6 +1186,7 @@ function renderMyFile(emp) {
   $('#q-sl').textContent = used.Sick      || 0;
   $('#q-al').textContent = used.Annual    || 0;
   $('#q-ml').textContent = used.Maternity || 0;
+  $('#q-lwp').textContent = used.LWP      || 0;
 
   const records = DB.applications.filter(a => a.empId === emp.id).sort((a,b) => b.start.localeCompare(a.start));
   const tb = $('#myfile-body');
